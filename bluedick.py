@@ -5,10 +5,11 @@ import serial
 import time
 
 BLUETOOTH_BAUDRATE = 115200
-FORWARD = "w"
-BACKWARD = "s"
-LEFT = "a"
-RIGHT = "d"
+FORWARD = "w\n"
+BACKWARD = "s\n"
+LEFT = "a\n"
+RIGHT = "d\n"
+STOP = "k\n"
 
 LAST_POS_LIMIT = 5
 
@@ -31,6 +32,7 @@ class Robot(object):
 
     def __init__(self, device):
         """ device should be the path to the bluetooth device on the PI """
+        self.device = device
         self.serial = serial.Serial(device, baudrate=BLUETOOTH_BAUDRATE)
         self.speed = 0
         self.state = Robot.STOP
@@ -42,6 +44,9 @@ class Robot(object):
         self.last_xs = []
         self.last_ys = []
         self.did_forward_last = False
+
+    def resync(self):
+        self.serial = serial.Serial(self.device, baudrate=BLUETOOTH_BAUDRATE) 
 
     def forward(self, speed=1):
         self.speed = speed
@@ -66,7 +71,7 @@ class Robot(object):
     def stop(self):
         self.speed = 0
         self.state = Robot.STOP
-        return self.serial.write("s\n")
+        return self.serial.write(STOP)
 
     def auto(self):
         return self.serial.write("a\n")
@@ -194,3 +199,7 @@ try:
         print "She ain't listenin'"
 except:
     print "Could Not Connect to Robot 1"
+
+print "Reading From Robot 1"
+while True:
+    print repr(bts1.readline())
