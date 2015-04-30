@@ -3,36 +3,23 @@
 import numpy as np
 import cv2
 
+from anal import macRun, raspberryRun
 from bluedick import *
 from oral import *
 
-def get_roi_hist(frame):
-    # setup initial location of window
-    c, r, w, h = 320-480/8, 240-480/8, 480/4, 480/4 # simply hardcoded the values
-    track_window = (c, r, w, h)
+def track_some_shit(frame):
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    current_time = time.time()
 
-    cv2.rectangle(frame, (c,r), (c+w,r+h), 255, 2)
-    #cv2.imshow(WINDOW_TITLE, frame)
+    robot1.update(hsv, current_time)
+    robot1.draw(frame)
 
-    k = cv2.waitKey(1) & 0xff
-    if k != ord('s'):
-        return None, None
+    return
 
-    # set up the ROI for tracking
-    roi = frame[r:r+h, c:c+w]
-    hsv_roi =  cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv_roi, np.array((20., 60.,32.)), np.array((50.,255.,255.)))
-    roi_hist = cv2.calcHist([hsv_roi], [0], None, [16], [0, 180])
-    cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
-    
-    return track_window, roi_hist
-
-def track_some_shit(frame, track_window, roi_hist):
     global mask, next_move_time
     if track_window is None:
         return
 
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     back_proj = cv2.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
 
     # apply meanshift to get the new location
@@ -44,10 +31,15 @@ def track_some_shit(frame, track_window, roi_hist):
     mask[y:y+h, x:x+w] = 255
     # pts = np.int0(cv2.cv.BoxPoints(ret))
     # cv2.polylines(frame, [pts], True, (0, 255, 0), 2)
-    # cv2.imshow(WINDOW_TITLE, cv2.bitwise_and(frame, frame, mask=mask))
+    # cv2.imshow(WINDOW_TITLE, cv2.bitwise_and(frame, frame, mask=mask))\
+
+    cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 255), 2)
+    return track_window
     
+    robot0.draw(frame)
+    robot1.draw(frame)
+
     robot0.update_pos(x + w/2, y + h/2)
-    current_time = time.time()
     if (current_time > next_move_time):
         print "Making Move..."
         robot0.make_move(target)
@@ -62,15 +54,69 @@ next_move_time = 0
 MOVE_TIME_DELTA = 1
 
 mask = np.zeros((480, 640), np.uint8)
-roi_hist = None
 # Setup the termination criteria, either 10 iterations or move by at least 1 pt
 TERM_CRIT = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1 )    
-track_window = None
-def step(image, coverage):
-    global roi_hist
-    global track_window
-    if roi_hist is None:
-    	track_window, roi_hist = get_roi_hist(image)
-    else:
-    	track_window = track_some_shit(image, track_window, roi_hist)
 
+def on_click(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        if state.state == 0 or state.state == 3:
+            p1.x = x
+            p1.y = y
+            state.state += 1
+            print p1.x, p1.y
+        elif state.state == 1 or state.state == 4:
+            p2.x = x
+            p2.y = y
+            state.state += 1
+            print p2.x, p2.y
+        elif state.state > 4:
+            state.target.x = x
+            state.target.y = y
+    elif event == cv2.EVENT_LBUTTONUP:
+        pass
+
+def keyboard_cmds():
+    key = chr(cv2.waitKey(1) & 0xff)
+    if key == '0':
+        robot0.stop()
+        state.selected_robot = robot0
+        state.state = 0
+    elif key == '1':
+        robot1.stop()
+        state.selected_robot = robot1
+        state.state = 0
+    elif key == 's':
+        which = cv2.waitKey(0)
+        if which == '0':
+            robot0.stop()
+        elif which == '1':
+            robot1.stop()
+
+def step(frame):
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    keyboard_cmds()
+        
+    if state.state == 2:
+        state.selected_robot.set_front_box(p1, p2, frame)
+        state.state = 3
+    if state.state == 5:
+        state.selected_robot.set_back_box(p1, p2, frame) 
+        state.state = 6
+
+    if state.state < 6:
+        robot1.draw(frame)
+    else:
+    	track_some_shit(frame)
+    
+    cv2.rectangle(frame, (state.target.x-5, state.target.y-5),
+                         (state.target.x+5, state.target.y+5), (0, 0, 255), 2)
+    cv2.imshow(WINDOW_TITLE, frame)
+
+def run():
+    cv2.namedWindow(WINDOW_TITLE)
+    cv2.setMouseCallback(WINDOW_TITLE, on_click)
+    state.selected_robot = robot1
+    raspberryRun(step)
+
+if __name__ == "__main__":
+    run()

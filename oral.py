@@ -1,7 +1,5 @@
 #/usr/bin/env python
 
-from bluedick import *
-
 WINDOW_TITLE = "ASS BALLS"
 
 class Point(object):
@@ -9,4 +7,13 @@ class Point(object):
         self.x = x
         self.y = y
 
-target = Point()
+class State(object):
+    def __init__(self):
+        self.state = 0
+        self.selected_robot = None
+        self.target = Point()
+
+p1 = Point()
+p2 = Point()
+state = State()
+

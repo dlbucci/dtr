@@ -4,20 +4,31 @@ import math
 import serial
 import time
 
+import numpy as np
+import cv2
+
+from oral import state
+
 BLUETOOTH_BAUDRATE = 115200
-FORWARD = "w\n"
-BACKWARD = "s\n"
-LEFT = "a\n"
-RIGHT = "d\n"
-STOP = "k\n"
+FORWARD = "f"
+BACKWARD = "b"
+LEFT = "l"
+RIGHT = "r"
+STOP = "s\n"
+
+CMD_FORMAT_STRING = "%c 160 170\n"
 
 LAST_POS_LIMIT = 5
 
 TARGET_RADIUS = 60
 TARGET_RADIUS_SQUARED = TARGET_RADIUS ** 2
-ANGLE_ERROR_RADS = math.pi / 4 # error margin for one angle
+ANGLE_ERROR_RADS = math.pi / 8 # error margin for one angle
 MOVE_ERROR_PIXELS = 40
 MOVE_ERROR_SQUARED = MOVE_ERROR_PIXELS ** 2
+
+MOVE_TIME_DELTA = .5
+
+TERM_CRIT = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1 )    
 
 def median(L):
     return (sorted(L))[(len(L)/2)]
@@ -34,8 +45,7 @@ class Robot(object):
         """ device should be the path to the bluetooth device on the PI """
         self.device = device
         self.serial = serial.Serial(device, baudrate=BLUETOOTH_BAUDRATE)
-        self.speed = 0
-        self.state = Robot.STOP
+
         self.old_x = 0
         self.old_y = 0
         self.angle = 0
@@ -43,47 +53,121 @@ class Robot(object):
         self.y = 0
         self.last_xs = []
         self.last_ys = []
-        self.did_forward_last = False
+        self.did_forward_last = True
+        self.next_move_time = 0
+
+        self.front_box = None
+        self.front_hist = None
+        self.back_box = None
+        self.back_hist = None
+    
+    def update(self, hsv, time):
+        self.front_box = self.track(hsv, self.front_box, self.front_hist)
+        self.back_box = self.track(hsv, self.back_box, self.back_hist)
+        if (time >= self.next_move_time):
+            print "Making Move"
+            self.make_move(state.target)
+            self.next_move_time = time + MOVE_TIME_DELTA
+
+    def track(self, hsv, box, hist):
+        back_proj = cv2.calcBackProject([hsv], [0], hist, [0, 180], 1)
+
+        # apply meanshift to get the new location
+        ret, box = cv2.meanShift(back_proj, box, TERM_CRIT)
+
+        # do this
+        self.update_pos(self.back_box[0] + self.back_box[2]/2, self.back_box[1] + self.back_box[3]/2)
+
+        return box
+        
+    def draw(self, frame):
+        if self.front_box:
+            cv2.rectangle(frame, (self.front_box[0], self.front_box[1]),
+                                 (self.front_box[2] + self.front_box[0], self.front_box[3] + self.front_box[1]), (0, 255, 255), 2)
+        if self.back_box:
+            cv2.rectangle(frame, (self.back_box[0], self.back_box[1]),
+                                 (self.back_box[0] + self.back_box[2], self.back_box[1] + self.back_box[3]), (0, 255, 0), 2) 
 
     def resync(self):
         self.serial = serial.Serial(self.device, baudrate=BLUETOOTH_BAUDRATE) 
 
+    def set_front_box(self, p1, p2, frame):
+        self.front_box = self._box_from(p1, p2)
+        self.front_hist = self._hist_for(self.front_box, frame)
+
+    def set_back_box(self, p1, p2, frame):
+        self.back_box = self._box_from(p1, p2)
+        self.back_hist = self._hist_for(self.back_box, frame)
+
+    def _box_from(self, p1, p2):
+        minx = min(p1.x, p2.x)
+        miny = min(p1.y, p2.y)
+        return (minx, miny, max(p1.x, p2.x) - minx, max(p1.y, p2.y) - miny)
+    
+    def _hist_for(self, box, frame):
+        x, y, w, h = box
+        # set up the ROI for tracking
+        roi = frame[y:y+h, x:x+w]
+        hsv_roi =  cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        mask = cv2.inRange(hsv_roi, np.array((20., 60.,32.)), np.array((50.,255.,255.)))
+        roi_hist = cv2.calcHist([hsv_roi], [0], None, [16], [0, 180])
+        cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
+        cv2.imshow(self.device, roi)
+        return roi_hist
+
     def forward(self, speed=1):
-        self.speed = speed
-        self.state = Robot.FORWARD
-        return self.serial.write(FORWARD)
+        try:
+            return self.serial.write(CMD_FORMAT_STRING % FORWARD)
+        except:
+            return None
 
     def backward(self, speed=1):
-        self.speed = speed
-        self.state = Robot.BACKWARD
-        return self.serial.write(BACKWARD)
+        try:
+            return self.serial.write(CMD_FORMAT_STRING % BACKWARD)
+        except:
+            return None
 
     def left(self, speed=1):
-        self.speed = speed
-        self.state = Robot.LEFT
-        return self.serial.write(LEFT)
+        try:
+            return self.serial.write(CMD_FORMAT_STRING % LEFT)
+        except:
+            return None
 
     def right(self, speed=1):
-        self.speed = speed
-        self.state = Robot.RIGHT
-        return self.serial.write(RIGHT)
+        try:
+            return self.serial.write(CMD_FORMAT_STRING % RIGHT)
+        except:
+            return None
 
     def stop(self):
-        self.speed = 0
-        self.state = Robot.STOP
-        return self.serial.write(STOP)
+        try:
+            return self.serial.write(STOP)
+        except:
+            return None
 
     def auto(self):
-        return self.serial.write("a\n")
+        try:
+            return self.serial.write("a\n")
+        except:
+            return None
 
     def manual(self):
-        return self.serial.write("m\n")
+        try:
+            return self.serial.write("m\n")
+        except:
+            return None
 
     def deactivate_sensors(self):
-        return self.serial.write("d\n")
+        try:
+            return self.serial.write("d\n")
+        except:
+            return None
 
     def activate_sensors(self):
-        return self.serial.write("h\n")
+        try:
+            return self.serial.write("h\n")
+        except:
+            return None
 
     def update_pos(self, x, y):
         self.last_xs.append(x)
@@ -102,7 +186,7 @@ class Robot(object):
             self.old_x = self.x
             self.old_y = self.y
             return
-
+        """
         odx = self.x - self.old_x
         ody = self.y - self.old_y
         if (odx ** 2 + ody ** 2 < MOVE_ERROR_SQUARED):
@@ -116,6 +200,9 @@ class Robot(object):
             self.old_x = self.x
             self.old_y = self.y
             return
+        """
+        odx = (self.front_box[0] + self.front_box[2]/2) - (self.back_box[0] + self.back_box[2]/2)
+        ody = (self.front_box[1] + self.front_box[3]/2) - (self.back_box[1] + self.back_box[3]/2)
 
         target_angle_rad = math.atan2(dy, dx)
         print "target angle:", target_angle_rad
@@ -200,6 +287,7 @@ try:
 except:
     print "Could Not Connect to Robot 1"
 
-print "Reading From Robot 1"
-while True:
-    print repr(bts1.readline())
+if __name__ == "__main__":
+    print "Reading From Robot 1"
+    while True:
+        print repr(bts1.readline())

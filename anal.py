@@ -10,14 +10,12 @@ import numpy as np
 import time
 
 from oral import *
-from pumpkin import step
+#from pumpkin import runBalls, step
 
-def pos_upper_left(pos):
-    return (pos.x - 60, pos.y - 60 )
-def pos_lower_right(pos):
-    return (pos.x + 60, pos.y + 60 )
+CAP_DIM = (640, 480)
+CAP_FPS = 16
 
-def raspberryRun(coverage): 
+def raspberryRun(step):
     camera = PiCamera()
     camera.resolution = CAP_DIM
     camera.framerate = CAP_FPS
@@ -29,9 +27,7 @@ def raspberryRun(coverage):
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         image = frame.array
 
-        step(image, coverage)
-        cv2.rectangle(image, pos_upper_left(target), pos_lower_right(target), (0, 0, 255), 4)
-        cv2.imshow(WINDOW_TITLE, image)
+        step(image)
 
         rawCapture.truncate(0)
 
@@ -54,25 +50,6 @@ def macRun(coverage):
     cap.release()
     cv2.destroyAllWindows()
 
-def on_click(event, x, y, flags, param):
-    if event == cv2.EVENT_LBUTTONDOWN:
-        target.x = x
-        target.y = y
-        print x, y
-    elif event == cv2.EVENT_LBUTTONUP:
-        pass
-
-def run():
-    # keep track of the which pixels have been covered
-    coverage = np.zeros(CAP_DIM, np.uint8)
-    cv2.namedWindow(WINDOW_TITLE)
-    cv2.setMouseCallback(WINDOW_TITLE, on_click)
-    if RASPBERRY_PI:
-        raspberryRun(coverage)
-    else:
-        macRun(coverage)
-
-CAP_DIM = (640, 480)
-CAP_FPS = 16
 if __name__ == "__main__":
-    run()
+    print "run pumpkin.py, you dumb ass"
+    raise "Dumbass Error"
