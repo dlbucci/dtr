@@ -1,6 +1,7 @@
 #/usr/bin/env python
 
 import math
+import random
 import serial
 import time
 
@@ -16,19 +17,21 @@ LEFT = "l"
 RIGHT = "r"
 STOP = "s\n"
 
-CMD_FORMAT_STRING = "%c 160 170\n"
+CMD_FORMAT_STRING = "%c 180 190\n"
 
 LAST_POS_LIMIT = 5
 
 TARGET_RADIUS = 60
 TARGET_RADIUS_SQUARED = TARGET_RADIUS ** 2
-ANGLE_ERROR_RADS = math.pi / 8 # error margin for one angle
+ANGLE_ERROR_RADS = math.pi / 4 # error margin for one angle
 MOVE_ERROR_PIXELS = 40
 MOVE_ERROR_SQUARED = MOVE_ERROR_PIXELS ** 2
 
 MOVE_TIME_DELTA = .5
+TURN_TIME_DELTA = .25
+TURN_TIMES = (.3, .4, .5, .6)
 
-TERM_CRIT = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1 )    
+TERM_CRIT = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 2)
 
 def median(L):
     return (sorted(L))[(len(L)/2)]
@@ -65,9 +68,19 @@ class Robot(object):
         self.front_box = self.track(hsv, self.front_box, self.front_hist)
         self.back_box = self.track(hsv, self.back_box, self.back_hist)
         if (time >= self.next_move_time):
-            print "Making Move"
-            self.make_move(state.target)
-            self.next_move_time = time + MOVE_TIME_DELTA
+            self.next_move_time = time + self.make_move(state.target)
+            res = self.serial.readline()
+            if res[0:2] == "E:":
+                if random.randint(0, 1) == 1:
+                    self.right()
+                else:
+                    self.left()
+                self.next_move_time = time + random.choice(TURN_TIMES)
+                # clear error messages
+                res = self.serial.readline()
+                while res[0:2] == "E:":
+                    res = self.serial.readline()
+
 
     def track(self, hsv, box, hist):
         back_proj = cv2.calcBackProject([hsv], [0], hist, [0, 180], 1)
@@ -91,13 +104,19 @@ class Robot(object):
     def resync(self):
         self.serial = serial.Serial(self.device, baudrate=BLUETOOTH_BAUDRATE) 
 
+    def set_hists(self, frame):
+        self.front_hist = self._hist_for((0, 0, 640, 480), frame)        
+        self.back_hist = self._hist_for((0, 0, 640, 480), frame)        
+
     def set_front_box(self, p1, p2, frame):
         self.front_box = self._box_from(p1, p2)
-        self.front_hist = self._hist_for(self.front_box, frame)
+        if self.front_hist is None:
+            self.front_hist = self._hist_for(self.front_box, frame)
 
     def set_back_box(self, p1, p2, frame):
         self.back_box = self._box_from(p1, p2)
-        self.back_hist = self._hist_for(self.back_box, frame)
+        if self.back_hist is None:
+            self.back_hist = self._hist_for(self.back_box, frame)
 
     def _box_from(self, p1, p2):
         minx = min(p1.x, p2.x)
@@ -182,10 +201,10 @@ class Robot(object):
         dx = target.x - self.x
         dy = target.y - self.y
         if (dx ** 2 + dy ** 2 < TARGET_RADIUS_SQUARED):
-            print "at target"
             self.old_x = self.x
             self.old_y = self.y
-            return
+            self.stop()
+            return MOVE_TIME_DELTA
         """
         odx = self.x - self.old_x
         ody = self.y - self.old_y
@@ -205,38 +224,31 @@ class Robot(object):
         ody = (self.front_box[1] + self.front_box[3]/2) - (self.back_box[1] + self.back_box[3]/2)
 
         target_angle_rad = math.atan2(dy, dx)
-        print "target angle:", target_angle_rad
         current_angle_rad = math.atan2(ody, odx)
-        print "current angle:", current_angle_rad
         angle_delta = target_angle_rad - current_angle_rad
         if angle_delta > math.pi:
             angle_delta -= 2*math.pi
         elif angle_delta <= -math.pi:
             angle_delta += 2*math.pi
-        print "final angle delta:", angle_delta
 
         if abs(angle_delta) < ANGLE_ERROR_RADS:
             if self.did_forward_last:
-                print "moving forward"
                 self.forward()
             else:
-                print "moving backward"
                 self.backward()
+            return MOVE_TIME_DELTA
         elif angle_delta <= -ANGLE_ERROR_RADS:
             if self.did_forward_last:
-                print "rotating left"
                 self.left()
             else:
-                print "rotating right"
                 self.right()
         elif angle_delta > ANGLE_ERROR_RADS:
             if self.did_forward_last:
-                print "rotating right"
                 self.right()
             else:
-                print "rotating left"
                 self.left()
 
+        return TURN_TIME_DELTA
         self.old_x = self.x
         self.old_y = self.y
         return

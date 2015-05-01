@@ -75,7 +75,7 @@ def on_click(event, x, y, flags, param):
     elif event == cv2.EVENT_LBUTTONUP:
         pass
 
-def keyboard_cmds():
+def keyboard_cmds(frame):
     key = chr(cv2.waitKey(1) & 0xff)
     if key == '0':
         robot0.stop()
@@ -91,10 +91,13 @@ def keyboard_cmds():
             robot0.stop()
         elif which == '1':
             robot1.stop()
+    elif key == 'h':
+        robot0.set_hists(frame)
+        robot1.set_hists(frame)
 
 def step(frame):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    keyboard_cmds()
+    keyboard_cmds(frame)
         
     if state.state == 2:
         state.selected_robot.set_front_box(p1, p2, frame)
