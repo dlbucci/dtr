@@ -1,7 +1,8 @@
 #/usr/bin/env python
 
 import math
-from multiprocessing import Process, Queue
+import multiprocessing as mp
+import Queue
 import random
 import serial
 import time
@@ -12,7 +13,7 @@ import cv2
 from oral import *
 
 BLUETOOTH_BAUDRATE = 115200
-BLUETOOTH_TIMEOUT = .1
+BLUETOOTH_TIMEOUT = 10
 FORWARD = "f"
 BACKWARD = "b"
 LEFT = "l"
@@ -58,8 +59,9 @@ class Robot(object):
 
         self.set_motors(left_motor, right_motor)
 
-        self.messaging_queue = Queue()
-        self.listener = Process(target=self.listen_for_errors, args=(self.messaging_queue,))
+        self.messaging_queue = mp.Queue()
+        self.listener = mp.Process(target=self.listen_for_errors, args=(self.messaging_queue,))
+        self.listener.start()
         self.error_state = 0
     
     def update(self, hsv, time):
@@ -76,27 +78,13 @@ class Robot(object):
                                 np.array((self.back_hue.max_hue, 255, 255)))
         hsv1 = cv2.bitwise_and(hsv, hsv, mask=mask)
         self.back_box = self.track(hsv1, self.back_box, self.back_hist)
-        try:
-            msg = self.messaging_queue.get(Block=False)
-            if msg == ERROR:
-                self.error_state = 1
-            elif msg == ERROR_DONE:
-                self.error_state = 2
-        except:
-            pass
+
+        self.check_for_error()
+        if self.error_state > 0:
+            self.next_move_time = time + self.on_error(time)
+            return
         if (time >= self.next_move_time):
             self.next_move_time = time + self.make_move(state.target)
-            res = self.read()
-            if res[0:2] == "E:":
-                if random.randint(0, 1) == 1:
-                    self.right()
-                else:
-                    self.left()
-                self.next_move_time = time + random.choice(TURN_TIMES)
-                # clear error messages
-                res = self.read()
-                while res[0:2] == "E:":
-                    res = self.read()
 
     def track(self, hsv, box, hist):
         back_proj = cv2.calcBackProject([hsv], [0], hist, [0, 180], 1)
@@ -134,33 +122,31 @@ class Robot(object):
         hob.min_hue = hue - HUE_HALF_RANGE
         hob.max_hue = hue + HUE_HALF_RANGE
 
-    def set_front_box(self, p1, p2, frame):
+    def set_front_box(self, p1, p2, hsv):
         self.front_box = self._box_from(p1, p2)
         print self.front_box
-        if self.front_hist is None:
-            self.front_hist = self._hist_for(self.front_box, frame,
-                                         self.front_hue.min_hue,
-                                         self.front_hue.max_hue)
+        self.front_hist = self._hist_for(self.front_box, hsv,
+                                     self.front_hue.min_hue,
+                                     self.front_hue.max_hue)
 
-    def set_front_box_2(self, p1, frame):
+    def set_front_box_2(self, p1, hsv):
         self.set_front_box(Point(p1.x - ROBOT_BOX_HALF_WIDTH,
                                  p1.y - ROBOT_BOX_HALF_WIDTH),
                            Point(p1.x + ROBOT_BOX_HALF_WIDTH,
-                                 p1.y + ROBOT_BOX_HALF_WIDTH), frame)
+                                 p1.y + ROBOT_BOX_HALF_WIDTH), hsv)
 
-    def set_back_box(self, p1, p2, frame):
+    def set_back_box(self, p1, p2, hsv):
         self.back_box = self._box_from(p1, p2)
         print self.back_box
-        if self.back_hist is None:
-            self.back_hist = self._hist_for(self.back_box, frame,
-                                        self.back_hue.min_hue,
-                                        self.back_hue.max_hue)
+        self.back_hist = self._hist_for(self.back_box, hsv,
+                                    self.back_hue.min_hue,
+                                    self.back_hue.max_hue)
 
-    def set_back_box_2(self, p1, frame):
+    def set_back_box_2(self, p1, hsv):
         self.set_back_box(Point(p1.x - ROBOT_BOX_HALF_WIDTH,
                                 p1.y - ROBOT_BOX_HALF_WIDTH),
                           Point(p1.x + ROBOT_BOX_HALF_WIDTH,
-                                p1.y + ROBOT_BOX_HALF_WIDTH), frame)
+                                p1.y + ROBOT_BOX_HALF_WIDTH), hsv)
 
     def _box_from(self, p1, p2):
         minx = min(p1.x, p2.x)
@@ -198,7 +184,7 @@ class Robot(object):
     def make_move(self, target):
         dx = target.x - self.x
         dy = target.y - self.y
-        if (dx ** 2 + dy ** 2 < TARGET_RADIUS_SQUARED):
+        if (dx ** 2 + dy ** 2 < state.target_radius_squared):
             self.stop()
             return MOVE_TIME_DELTA
 
@@ -232,17 +218,42 @@ class Robot(object):
 
         return TURN_TIME_DELTA
 
+    # this is run in a subprocess and listens for errors
     def listen_for_errors(self, q):
         while True:
-            res = self.readline()
-            if res[0:2] == "E:":
-                q.put(ERROR)
-            elif res[0:2] == "ED":
-                q.put(ERROR_DONE)
+            res = self.read()
+            if res[0:2] == "E:" or res[0:2] == "ED":
+                q.put(res)
 
-    def on_error(self):
-        pass
-    
+    def check_for_error(self):
+        try:
+            while True:
+                msg = self.messaging_queue.get(block=False)
+                print msg
+                if msg[0] == "E":
+                    print msg,
+                    if msg[1] == ":":
+                        self.error_state = 1
+                    elif msg[1] == "D":
+                        self.error_state = 2
+        except Queue.Empty:
+            pass
+
+    def on_error(self, time):
+        if self.error_state == 2:
+            self.error_state = 3
+            if random.randint(0, 1) == 1:
+                self.right()
+            else:
+                self.left()
+            return random.choice(TURN_TIMES)
+        elif self.error_state == 3:
+            self.error_state = 0
+            self.forward()
+            return random.choice(FORWARD_TIMES)
+        else:
+            return 1
+
     #
     # private - meant for testing below here
     #

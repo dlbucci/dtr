@@ -4,9 +4,9 @@ import numpy as np
 import cv2
 
 from anal import macRun, raspberryRun
-from bluedick import *
 from debug import setup_settings_window
 from oral import *
+from robot import *
 from robot_settings import RobotSettingsWindow
 
 def track_some_shit(frame):
@@ -36,7 +36,7 @@ def on_click(event, x, y, flags, param):
             p2.y = y
             state.state += 1
             print p2.x, p2.y
-        elif state.state > 5:
+        elif state.state == State.IDLE:
             state.target.x = x
             state.target.y = y
 
@@ -107,16 +107,16 @@ def step(frame):
     else:
     	track_some_shit(frame)
     
-    cv2.circle(frame, (state.target.x, state.target.y), TARGET_RADIUS,
+    cv2.circle(frame, (state.target.x, state.target.y), state.target_radius,
                TARGET_CIRCLE_COLOR, TARGET_CIRCLE_THICKNESS)
     cv2.imshow(WINDOW_TITLE, frame)
 
 def setup_window(): 
-    cv2.namedWindow(WINDOW_TITLE)
-    cv2.setMouseCallback(WINDOW_TITLE, on_click)
+    setup_settings_window()
     RobotSettingsWindow(robot0)
     RobotSettingsWindow(robot1)
-    setup_settings_window()
+    cv2.namedWindow(WINDOW_TITLE)
+    cv2.setMouseCallback(WINDOW_TITLE, on_click)
 
 def main():
     """
@@ -125,8 +125,8 @@ def main():
     """
     setup_window()
     state.selected_robot = robot1
-    macRun(step)
-    #raspberryRun(step)
+    #macRun(step)
+    raspberryRun(step)
 
 mask = np.zeros((480, 640), np.uint8)
 

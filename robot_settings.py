@@ -2,8 +2,8 @@
 
 import cv2
 import numpy as np
-from bluedick import *
 from oral import *
+from robot import *
 
 WINDOW_FMT = "%s Settings"
 
@@ -17,8 +17,6 @@ FRONT_MAX_HUE = "Front Max Hue:"
 SET_BACK_HUE = "Set Back Hue:"
 BACK_MIN_HUE = "Back Min Hue:"
 BACK_MAX_HUE = "Back Max Hue:"
-CLEAR_FRONT_HIST = "Clear Front Hist:"
-CLEAR_BACK_HIST = "Clear Back Hist:"
 MIN_RANGE = 1
 
 class RobotSettingsWindow(object):
@@ -53,9 +51,6 @@ class RobotSettingsWindow(object):
         cv2.setTrackbarPos(BACK_MIN_HUE, self.WINDOW, robot.back_hue.min_hue)
         cv2.setTrackbarPos(BACK_MAX_HUE, self.WINDOW, robot.back_hue.max_hue)
 
-        cv2.createTrackbar(CLEAR_FRONT_HIST, self.WINDOW, 0, 1, self.clear_front_hist)
-        cv2.createTrackbar(CLEAR_BACK_HIST, self.WINDOW, 0, 1, self.clear_back_hist)
-        
         hue_window = np.zeros((1, 400, 3), np.uint8)
         cv2.imshow(self.WINDOW, hue_window)
 
@@ -91,6 +86,7 @@ class RobotSettingsWindow(object):
         cv2.setTrackbarPos(SET_FRONT_HUE, self.WINDOW, 0)
         cv2.setTrackbarPos(FRONT_MIN_HUE, self.WINDOW, self.robot.front_hue.min_hue)
         cv2.setTrackbarPos(FRONT_MAX_HUE, self.WINDOW, self.robot.front_hue.max_hue)
+        self.robot.set_front_box_2(Point(x, y), hsv)
 
     def set_back_hue(self, x):
         if x == 1:
@@ -100,14 +96,5 @@ class RobotSettingsWindow(object):
         cv2.setTrackbarPos(SET_BACK_HUE, self.WINDOW, 0)
         cv2.setTrackbarPos(BACK_MIN_HUE, self.WINDOW, self.robot.back_hue.min_hue)
         cv2.setTrackbarPos(BACK_MAX_HUE, self.WINDOW, self.robot.back_hue.max_hue)
+        self.robot.set_back_box_2(Point(x, y), hsv)
     
-    def clear_front_hist(self, x):
-        if x == 1:
-            self.robot.front_hist = None
-            cv2.setTrackbarPos(CLEAR_FRONT_HIST, self.WINDOW, 0)
-
-    def clear_back_hist(self, x):
-        if x == 1:
-            self.robot.back_hist = None
-            cv2.setTrackbarPos(CLEAR_BACK_HIST, self.WINDOW, 0)
-
