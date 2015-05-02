@@ -10,7 +10,7 @@ import time
 import numpy as np
 import cv2
 
-from oral import *
+from state import *
 
 BLUETOOTH_BAUDRATE = 115200
 BLUETOOTH_TIMEOUT = 10

@@ -5,7 +5,7 @@ import cv2
 
 from camera import macRun, raspberryRun
 from debug import setup_settings_window
-from oral import *
+from state import *
 from robot import *
 from robot_settings import RobotSettingsWindow
 
@@ -22,7 +22,6 @@ def track_some_shit(frame):
 
 def on_click(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
-        print state.state
         if state.state == State.AWAITING_CLICK and state.callback:
             state.callback(x, y, state.last_hsv)
             state.state = State.IDLE

@@ -3,7 +3,7 @@
 import cv2
 import numpy as np
 
-from oral import *
+from state import *
 
 SETTINGS_WINDOW = "Settings"
 

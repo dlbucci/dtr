@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 import time
 
-from oral import *
+from state import *
 #from pumpkin import runBalls, step
 
 def raspberryRun(step):
