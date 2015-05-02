@@ -23,6 +23,9 @@ def track_some_shit(frame):
 def on_click(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         print state.state
+        if state.state == State.AWAITING_CLICK and state.callback:
+            state.callback(x, y, state.last_hsv)
+            state.state = State.IDLE
         if state.state == 0 or state.state == 3:
             p1.x = x
             p1.y = y
@@ -58,7 +61,12 @@ def keyboard_cmds(frame):
         robot1.set_hists(frame)
 
 def step(frame):
+    #cv2.imshow(WINDOW_TITLE, frame)
+    #return
+
+    state.last_frame = frame
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    state.last_hsv = hsv
     keyboard_cmds(frame)
 
     if state.view == 1:
@@ -86,11 +94,11 @@ def step(frame):
         cv2.imshow(WINDOW_TITLE, cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR))
         return 
         
-    if state.state == 2:
-        state.selected_robot.set_front_box(p1, p2, frame)
+    if state.state == 1:
+        state.selected_robot.set_front_box_2(p1, hsv)
         state.state = 3
-    if state.state == 5:
-        state.selected_robot.set_back_box(p1, p2, frame) 
+    if state.state == 4:
+        state.selected_robot.set_back_box_2(p1, hsv) 
         state.state = 6
 
     if state.state < 6:

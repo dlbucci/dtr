@@ -28,8 +28,10 @@ def median(L):
 class Robot(object):
     """ represents a robot. can be told to move with various methods """
 
-    def __init__(self, device):
+    def __init__(self, name, device, front_hue, back_hue):
         """ device should be the path to the bluetooth device on the PI """
+        self.name = name
+
         self.device = device
         self.serial = serial.Serial(device, baudrate=BLUETOOTH_BAUDRATE,
                                     timeout=BLUETOOTH_TIMEOUT)
@@ -44,16 +46,20 @@ class Robot(object):
 
         self.front_box = None
         self.front_hist = None
-        self.front_hue = HueSettings()
+        self.front_hue = front_hue
 
         self.back_box = None
         self.back_hist = None
-        self.back_hue = HueSettings()
+        self.back_hue = back_hue
+
+        self.running = False
     
     def update(self, hsv, time):
+        if not self.running:
+            return
         if (self.front_box is None or self.front_hist is None or
             self.back_box is None or self.back_hist is None):
-           return
+            return
         mask = cv2.inRange(hsv, np.array((self.front_hue.min_hue, 0, 0)),
                                 np.array((self.front_hue.max_hue, 255, 255)))
         hsv1 = cv2.bitwise_and(hsv, hsv, mask=mask)
@@ -100,35 +106,61 @@ class Robot(object):
         self.serial = serial.Serial(self.device, baudrate=BLUETOOTH_BAUDRATE) 
 
     def set_hists(self, frame):
-        self.front_hist = self._hist_for((0, 0, 640, 480), frame)        
-        self.back_hist = self._hist_for((0, 0, 640, 480), frame)        
+        self.front_hist = self._hist_for((0, 0, 640, 480), frame,
+                                         self.front_hue.min_hue,
+                                         self.front_hue.max_hue)
+        self.back_hist = self._hist_for((0, 0, 640, 480), frame,
+                                        self.back_hue.min_hue,
+                                        self.back_hue.max_hue)
+
+    def set_hue(self, hob, hue):
+        hob.min_hue = hue - HUE_HALF_RANGE
+        hob.max_hue = hue + HUE_HALF_RANGE
 
     def set_front_box(self, p1, p2, frame):
         self.front_box = self._box_from(p1, p2)
+        print self.front_box
         if self.front_hist is None:
-            self.front_hist = self._hist_for(self.front_box, frame)
+            self.front_hist = self._hist_for(self.front_box, frame,
+                                         self.front_hue.min_hue,
+                                         self.front_hue.max_hue)
+
+    def set_front_box_2(self, p1, frame):
+        self.set_front_box(Point(p1.x - ROBOT_BOX_HALF_WIDTH,
+                                 p1.y - ROBOT_BOX_HALF_WIDTH),
+                           Point(p1.x + ROBOT_BOX_HALF_WIDTH,
+                                 p1.y + ROBOT_BOX_HALF_WIDTH), frame)
 
     def set_back_box(self, p1, p2, frame):
         self.back_box = self._box_from(p1, p2)
+        print self.back_box
         if self.back_hist is None:
-            self.back_hist = self._hist_for(self.back_box, frame)
+            self.back_hist = self._hist_for(self.back_box, frame,
+                                        self.back_hue.min_hue,
+                                        self.back_hue.max_hue)
+
+    def set_back_box_2(self, p1, frame):
+        self.set_back_box(Point(p1.x - ROBOT_BOX_HALF_WIDTH,
+                                p1.y - ROBOT_BOX_HALF_WIDTH),
+                          Point(p1.x + ROBOT_BOX_HALF_WIDTH,
+                                p1.y + ROBOT_BOX_HALF_WIDTH), frame)
 
     def _box_from(self, p1, p2):
         minx = min(p1.x, p2.x)
         miny = min(p1.y, p2.y)
         return (minx, miny, max(p1.x, p2.x) - minx, max(p1.y, p2.y) - miny)
     
-    def _hist_for(self, box, frame):
+    def _hist_for(self, box, hsv, hue_min, hue_max):
         x, y, w, h = box
         # set up the ROI for tracking
-        roi = frame[y:y+h, x:x+w]
-        hsv_roi =  cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv_roi, np.array((20., 60.,32.)), np.array((50.,255.,255.)))
-        roi_hist = cv2.calcHist([hsv_roi], [0], None, [16], [0, 180])
+        #roi = frame[y:y+h, x:x+w]
+        hsv_roi = hsv[y:y+h, x:x+w] #cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        mask = cv2.inRange(hsv_roi,
+                           np.array((hue_min, 0, 0)), 
+                           np.array((hue_max, 255, 255)))
+        roi_hist = cv2.calcHist([hsv_roi], [0], mask, [16], [0, 180])
         cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
-        cv2.imshow(self.device, roi)
         return roi_hist
-
 
     def update_pos(self, x, y):
         self.last_xs.append(x)
@@ -231,7 +263,9 @@ class Robot(object):
             return self.write("h\n")
 
 try:
-    robot0 = Robot("/dev/rfcomm0")
+    robot0 = Robot("Firecracker", "/dev/rfcomm0",
+                   HueSettings(R0_FRONT_MIN_HUE, R0_FRONT_MAX_HUE),
+                   HueSettings(R0_BACK_MIN_HUE, R0_BACK_MAX_HUE))
     bts0 = serial.Serial("/dev/rfcomm0", baudrate=BLUETOOTH_BAUDRATE)
     print "Connected to Robot 0...",
     try:
@@ -243,7 +277,9 @@ except:
     print "Could Not Connect to Robot 0"
 
 try:
-    robot1 = Robot("/dev/rfcomm1")
+    robot1 = Robot("Little Idiot", "/dev/rfcomm1",
+                   HueSettings(R1_FRONT_MIN_HUE, R1_FRONT_MAX_HUE),
+                   HueSettings(R1_BACK_MIN_HUE, R1_BACK_MAX_HUE))
     bts1 = serial.Serial("/dev/rfcomm1", baudrate=BLUETOOTH_BAUDRATE)
     print "Connected to Robot 1...",
     try:

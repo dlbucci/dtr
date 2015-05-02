@@ -12,9 +12,6 @@ import time
 from oral import *
 #from pumpkin import runBalls, step
 
-CAP_DIM = (480, 360)
-CAP_FPS = 16
-
 def raspberryRun(step):
     camera = PiCamera()
     camera.resolution = CAP_DIM
