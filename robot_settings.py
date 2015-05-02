@@ -29,6 +29,11 @@ class RobotSettingsWindow(object):
 
         cv2.createTrackbar(RUN_ROBOT, self.WINDOW, 0, 1, self.run_robot)
 
+        cv2.createTrackbar(LEFT_MOTOR, self.WINDOW, 0, 255, self.left_motor)
+        cv2.setTrackbarPos(LEFT_MOTOR, self.WINDOW, robot.left_motor)
+        cv2.createTrackbar(RIGHT_MOTOR, self.WINDOW, 0, 255, self.right_motor)
+        cv2.setTrackbarPos(RIGHT_MOTOR, self.WINDOW, robot.right_motor)
+
         cv2.createTrackbar(PICK_CIRCLES, self.WINDOW, 0, 1, self.pick_circles)
     
         cv2.createTrackbar(SET_FRONT_HUE, self.WINDOW, 0, 1, self.set_front_hue)
@@ -59,9 +64,16 @@ class RobotSettingsWindow(object):
         if not self.robot.running:
             self.robot.stop()
 
+    def left_motor(self, x):
+        self.robot.set_motors(left=x)
+
+    def right_motor(self, x):
+        self.robot.set_motors(right=x)
+
     def pick_circles(self, x):
         state.state = 0
         state.selected_robot = self.robot
+        cv2.setTrackbarPos(PICK_CIRCLES, self.WINDOW, 0)
 
     def set_min_hue(self, trackbar, hob, x):
         hob.min_hue = min(x, hob.max_hue-MIN_RANGE)
@@ -79,7 +91,6 @@ class RobotSettingsWindow(object):
         cv2.setTrackbarPos(SET_FRONT_HUE, self.WINDOW, 0)
         cv2.setTrackbarPos(FRONT_MIN_HUE, self.WINDOW, self.robot.front_hue.min_hue)
         cv2.setTrackbarPos(FRONT_MAX_HUE, self.WINDOW, self.robot.front_hue.max_hue)
-        
 
     def set_back_hue(self, x):
         if x == 1:
@@ -93,8 +104,10 @@ class RobotSettingsWindow(object):
     def clear_front_hist(self, x):
         if x == 1:
             self.robot.front_hist = None
+            cv2.setTrackbarPos(CLEAR_FRONT_HIST, self.WINDOW, 0)
 
     def clear_back_hist(self, x):
         if x == 1:
             self.robot.back_hist = None
+            cv2.setTrackbarPos(CLEAR_BACK_HIST, self.WINDOW, 0)
 

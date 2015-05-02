@@ -11,14 +11,12 @@ import cv2
 from oral import *
 
 BLUETOOTH_BAUDRATE = 115200
-BLUETOOTH_TIMEOUT = 10
+BLUETOOTH_TIMEOUT = .1
 FORWARD = "f"
 BACKWARD = "b"
 LEFT = "l"
 RIGHT = "r"
 STOP = "s\n"
-
-CMD_FORMAT_STRING = "%c 180 190\n"
 
 LAST_POS_LIMIT = 5
 
@@ -28,7 +26,8 @@ def median(L):
 class Robot(object):
     """ represents a robot. can be told to move with various methods """
 
-    def __init__(self, name, device, front_hue, back_hue):
+    def __init__(self, name, device, front_hue, back_hue, 
+                 left_motor = 180, right_motor = 190):
         """ device should be the path to the bluetooth device on the PI """
         self.name = name
 
@@ -53,6 +52,8 @@ class Robot(object):
         self.back_hue = back_hue
 
         self.running = False
+
+        self.set_motors(left_motor, right_motor)
     
     def update(self, hsv, time):
         if not self.running:
@@ -162,6 +163,13 @@ class Robot(object):
         cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
         return roi_hist
 
+    def set_motors(self, left=None, right=None):
+        if left is not None:
+            self.left_motor = left
+        if right is not None:
+            self.right_motor = right
+        self.cmd_format_string = "%%c %d %d\n" % (self.left_motor, self.right_motor)
+
     def update_pos(self, x, y):
         self.last_xs.append(x)
         self.last_ys.append(y)
@@ -236,16 +244,16 @@ class Robot(object):
             return 0
 
     def forward(self, speed=1):
-            return self.write(CMD_FORMAT_STRING % FORWARD)
+            return self.write(self.cmd_format_string % FORWARD)
 
     def backward(self, speed=1):
-            return self.write(CMD_FORMAT_STRING % BACKWARD)
+            return self.write(self.cmd_format_string % BACKWARD)
 
     def left(self, speed=1):
-            return self.write(CMD_FORMAT_STRING % LEFT)
+            return self.write(self.cmd_format_string % LEFT)
 
     def right(self, speed=1):
-            return self.write(CMD_FORMAT_STRING % RIGHT)
+            return self.write(self.cmd_format_string % RIGHT)
 
     def stop(self):
             return self.write(STOP)
@@ -265,7 +273,8 @@ class Robot(object):
 try:
     robot0 = Robot("Firecracker", "/dev/rfcomm0",
                    HueSettings(R0_FRONT_MIN_HUE, R0_FRONT_MAX_HUE),
-                   HueSettings(R0_BACK_MIN_HUE, R0_BACK_MAX_HUE))
+                   HueSettings(R0_BACK_MIN_HUE, R0_BACK_MAX_HUE),
+                   R0_LEFT_MOTOR, R0_RIGHT_MOTOR)
     bts0 = serial.Serial("/dev/rfcomm0", baudrate=BLUETOOTH_BAUDRATE)
     print "Connected to Robot 0...",
     try:
@@ -279,7 +288,8 @@ except:
 try:
     robot1 = Robot("Little Idiot", "/dev/rfcomm1",
                    HueSettings(R1_FRONT_MIN_HUE, R1_FRONT_MAX_HUE),
-                   HueSettings(R1_BACK_MIN_HUE, R1_BACK_MAX_HUE))
+                   HueSettings(R1_BACK_MIN_HUE, R1_BACK_MAX_HUE),
+                   R1_LEFT_MOTOR, R1_RIGHT_MOTOR)
     bts1 = serial.Serial("/dev/rfcomm1", baudrate=BLUETOOTH_BAUDRATE)
     print "Connected to Robot 1...",
     try:
