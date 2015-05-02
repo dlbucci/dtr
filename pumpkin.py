@@ -3,7 +3,7 @@
 import numpy as np
 import cv2
 
-from anal import macRun, raspberryRun
+from camera import macRun, raspberryRun
 from debug import setup_settings_window
 from oral import *
 from robot import *
@@ -26,7 +26,7 @@ def on_click(event, x, y, flags, param):
         if state.state == State.AWAITING_CLICK and state.callback:
             state.callback(x, y, state.last_hsv)
             state.state = State.IDLE
-        if state.state == 0 or state.state == 3:
+        elif state.state == 0 or state.state == 3:
             p1.x = x
             p1.y = y
             state.state += 1

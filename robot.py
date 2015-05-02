@@ -90,13 +90,13 @@ class Robot(object):
         back_proj = cv2.calcBackProject([hsv], [0], hist, [0, 180], 1)
 
         # apply meanshift to get the new location
-        ret, box = cv2.meanShift(back_proj, box, TERM_CRIT)
+        ret, box = cv2.CamShift(back_proj, box, TERM_CRIT)
 
         # do this
         self.update_pos(self.front_box[0] + self.front_box[2]/2, 
                         self.front_box[1] + self.front_box[3]/2)
 
-        return box
+        return (box[0], box[1], max(1, min(box[2], 40)), max(1, min(box[3], 40)))
         
     def draw(self, frame):
         if self.front_box is not None:
