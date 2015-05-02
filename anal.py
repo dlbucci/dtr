@@ -41,7 +41,7 @@ def macRun(coverage):
         if not succ:
             continue
 
-        step(image, coverage)
+        step(image)
 
     # clean up
     cap.release()

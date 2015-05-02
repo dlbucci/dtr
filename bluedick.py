@@ -1,6 +1,7 @@
 #/usr/bin/env python
 
 import math
+from multiprocessing import Process, Queue
 import random
 import serial
 import time
@@ -20,6 +21,9 @@ STOP = "s\n"
 
 LAST_POS_LIMIT = 5
 
+ERROR = "error"
+ERROR_DONE = "error done"
+
 def median(L):
     return (sorted(L))[(len(L)/2)]
 
@@ -32,8 +36,7 @@ class Robot(object):
         self.name = name
 
         self.device = device
-        self.serial = serial.Serial(device, baudrate=BLUETOOTH_BAUDRATE,
-                                    timeout=BLUETOOTH_TIMEOUT)
+        self.resync()
 
         self.angle = 0
         self.x = 0
@@ -54,6 +57,10 @@ class Robot(object):
         self.running = False
 
         self.set_motors(left_motor, right_motor)
+
+        self.messaging_queue = Queue()
+        self.listener = Process(target=self.listen_for_errors, args=(self.messaging_queue,))
+        self.error_state = 0
     
     def update(self, hsv, time):
         if not self.running:
@@ -69,6 +76,14 @@ class Robot(object):
                                 np.array((self.back_hue.max_hue, 255, 255)))
         hsv1 = cv2.bitwise_and(hsv, hsv, mask=mask)
         self.back_box = self.track(hsv1, self.back_box, self.back_hist)
+        try:
+            msg = self.messaging_queue.get(Block=False)
+            if msg == ERROR:
+                self.error_state = 1
+            elif msg == ERROR_DONE:
+                self.error_state = 2
+        except:
+            pass
         if (time >= self.next_move_time):
             self.next_move_time = time + self.make_move(state.target)
             res = self.read()
@@ -104,7 +119,8 @@ class Robot(object):
                                  (self.back_box[0] + self.back_box[2], self.back_box[1] + self.back_box[3]), (0, 255, 0), 2) 
 
     def resync(self):
-        self.serial = serial.Serial(self.device, baudrate=BLUETOOTH_BAUDRATE) 
+        self.serial = serial.Serial(self.device, baudrate=BLUETOOTH_BAUDRATE,
+                                    timeout=BLUETOOTH_TIMEOUT)
 
     def set_hists(self, frame):
         self.front_hist = self._hist_for((0, 0, 640, 480), frame,
@@ -215,6 +231,17 @@ class Robot(object):
                 self.left()
 
         return TURN_TIME_DELTA
+
+    def listen_for_errors(self, q):
+        while True:
+            res = self.readline()
+            if res[0:2] == "E:":
+                q.put(ERROR)
+            elif res[0:2] == "ED":
+                q.put(ERROR_DONE)
+
+    def on_error(self):
+        pass
     
     #
     # private - meant for testing below here
@@ -243,16 +270,17 @@ class Robot(object):
         except:
             return 0
 
-    def forward(self, speed=1):
+
+    def forward(self):
             return self.write(self.cmd_format_string % FORWARD)
 
-    def backward(self, speed=1):
+    def backward(self):
             return self.write(self.cmd_format_string % BACKWARD)
 
-    def left(self, speed=1):
+    def left(self):
             return self.write(self.cmd_format_string % LEFT)
 
-    def right(self, speed=1):
+    def right(self):
             return self.write(self.cmd_format_string % RIGHT)
 
     def stop(self):

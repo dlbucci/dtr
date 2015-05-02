@@ -125,7 +125,8 @@ def main():
     """
     setup_window()
     state.selected_robot = robot1
-    raspberryRun(step)
+    macRun(step)
+    #raspberryRun(step)
 
 mask = np.zeros((480, 640), np.uint8)
 
