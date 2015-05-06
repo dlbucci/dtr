@@ -1,0 +1,10 @@
+- Higher Resolution
+- Calibration
+- Two Tripods with Plank
+- Kill Python Subprocesses
+- One Process per Robot
+- Pathfinding
+- Error Displays
+- Voice Over
+- Path Display
+- Better GUI/More than just Trackbars
