@@ -56,22 +56,22 @@ class RobotSettingsWindow(Frame):
         #self.run_robot_button.pack({"side": "left"})
 
         self.front_min_hue_scale = Scale(self, variable=self.robot.front_hue.min_hue,
-                                         from_=180, to=0, orient=HORIZONTAL,
+                                         from_=0, to=180, orient=HORIZONTAL,
                                          label=FRONT_MIN_HUE)
         self.front_min_hue_scale.pack()
 
         self.front_max_hue_scale = Scale(self, variable=self.robot.front_hue.max_hue,
-                                         from_=180, to=0, orient=HORIZONTAL,
+                                         from_=0, to=180, orient=HORIZONTAL,
                                          label=FRONT_MAX_HUE)
         self.front_max_hue_scale.pack()
 
         self.back_min_hue_scale = Scale(self, variable=self.robot.back_hue.min_hue,
-                                         from_=180, to=0, orient=HORIZONTAL,
+                                         from_=0, to=180, orient=HORIZONTAL,
                                          label=BACK_MIN_HUE)
         self.back_min_hue_scale.pack()
 
         self.back_max_hue_scale = Scale(self, variable=self.robot.back_hue.max_hue,
-                                         from_=180, to=0, orient=HORIZONTAL,
+                                         from_=0, to=180, orient=HORIZONTAL,
                                          label=BACK_MAX_HUE)
         self.back_max_hue_scale.pack()
 
@@ -109,7 +109,8 @@ class RobotSettingsWindow(Frame):
     def run_robot(self):
         if self.robot.running.get() == 0:
             self.robot.stop()
-    def set_motor_command(self):
+    def set_motor_command(self, x):
+        print x
         self.robot.set_motors()
 
     def pick_circles(self, x):
@@ -146,7 +147,6 @@ class RobotSettingsWindow(Frame):
         self.robot.set_back_box_2(Point(x, y), hsv)
 
 if __name__ == "__main__":
-    root = Tk()
     robot0frame = RobotSettingsWindow(master=root, robot=robot0)
     robot1frame = RobotSettingsWindow(master=root, robot=robot1)
     root.title("Dicks on Parade")

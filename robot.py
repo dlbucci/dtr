@@ -1,11 +1,13 @@
 #/usr/bin/env python
 
+import atexit
 import math
 import multiprocessing as mp
 import Queue
 import random
 import serial
 import time
+from Tkinter import IntVar
 
 import numpy as np
 import cv2
@@ -55,14 +57,18 @@ class Robot(object):
         self.back_hist = None
         self.back_hue = back_hue
 
-        self.running = False
+        self.running = IntVar()
+        self.tracking = IntVar()
 
+        self.left_motor = IntVar()
+        self.right_motor = IntVar()
         self.set_motors(left_motor, right_motor)
 
         self.messaging_queue = mp.Queue()
         self.listener = mp.Process(target=self.listen_for_errors, args=(self.messaging_queue,))
         self.listener.start()
         self.error_state = 0
+        atexit.register(self.kill_listener)
     
     def update(self, hsv, time):
         if not self.running:
@@ -166,10 +172,11 @@ class Robot(object):
 
     def set_motors(self, left=None, right=None):
         if left is not None:
-            self.left_motor = left
+            self.left_motor.set(left)
         if right is not None:
-            self.right_motor = right
-        self.cmd_format_string = "%%c %d %d\n" % (self.left_motor, self.right_motor)
+            self.right_motor.set(right)
+        self.cmd_format_string = "%%c %d %d\n" % (self.left_motor.get(), 
+                                                  self.right_motor.get())
 
     def update_pos(self, x, y):
         self.last_xs.append(x)
@@ -256,7 +263,9 @@ class Robot(object):
         else:
             self.error_state = 0
             return 1
-            
+   
+    def kill_listener(self):
+        self.listener.terminate()
 
     #
     # private - meant for testing below here
@@ -325,8 +334,9 @@ try:
         print "She's ready to go!"
     except:
         print "She ain't listenin'"
-except:
-    print "Could Not Connect to Robot 0"
+except Exception as e:
+    print "Could Not Connect to Robot 1:"
+    print e
 
 try:
     robot1 = Robot("Little Idiot", "/dev/rfcomm1",
@@ -340,8 +350,9 @@ try:
         print "She's ready to go!"
     except:
         print "She ain't listenin'"
-except:
-    print "Could Not Connect to Robot 1"
+except Exception as e:
+    print "Could Not Connect to Robot 1:"
+    print e
 
 if __name__ == "__main__":
     print "Reading From Robot 1"

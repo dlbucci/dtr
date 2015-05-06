@@ -1,6 +1,9 @@
 #/usr/bin/env python
 
 import math
+from Tkinter import *
+
+root = Tk()
 
 import cv2
 
@@ -77,11 +80,12 @@ class State(object):
 
 class HueSettings(object):
     def __init__(self, min_hue=0, max_hue=180):
-        self.min_hue = min_hue
-        self.max_hue = max_hue
+        self.min_hue = IntVar()
+        self.min_hue.set(min_hue)
+        self.max_hue = IntVar()
+        self.max_hue.set(max_hue)
 
 p1 = Point()
 p2 = Point()
 state = State()
-hue_settings = HueSettings()
 

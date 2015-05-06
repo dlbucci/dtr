@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 
 from camera import macRun, raspberryRun
-from debug import setup_settings_window
+from debug import GeneralSettingsFrame
 from state import *
 from robot import *
 from robot_settings import RobotSettingsWindow
@@ -110,10 +110,10 @@ def step(frame):
                TARGET_CIRCLE_COLOR, TARGET_CIRCLE_THICKNESS)
     cv2.imshow(WINDOW_TITLE, frame)
 
-def setup_window(): 
-    setup_settings_window()
-    RobotSettingsWindow(robot0)
-    RobotSettingsWindow(robot1)
+def setup_window():
+    GeneralSettingsFrame(root)
+    RobotSettingsWindow(root, robot0)
+    RobotSettingsWindow(root, robot1)
     cv2.namedWindow(WINDOW_TITLE)
     cv2.setMouseCallback(WINDOW_TITLE, on_click)
 
