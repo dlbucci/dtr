@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 
 from camera import macRun, raspberryRun
-from debug import GeneralSettingsFrame
+from settings import GeneralSettingsFrame
 from state import *
 from robot import *
 from robot_settings import RobotSettingsWindow
@@ -114,18 +114,21 @@ def setup_window():
     GeneralSettingsFrame(root)
     RobotSettingsWindow(root, robot0)
     RobotSettingsWindow(root, robot1)
-    cv2.namedWindow(WINDOW_TITLE)
-    cv2.setMouseCallback(WINDOW_TITLE, on_click)
+    #cv2.namedWindow(WINDOW_TITLE)
+    #cv2.setMouseCallback(WINDOW_TITLE, on_click)
 
 def main():
     """
     runs the program by setting up the window and calling
     the appropriate run function for the platform it's on
     """
+    root.title("Dicks on Parade")
     setup_window()
-    state.selected_robot = robot1
+    #state.selected_robot = robot1
     #macRun(step)
-    raspberryRun(step)
+    #raspberryRun(step)
+    root.mainloop()
+    root.destroy()
 
 mask = np.zeros((480, 640), np.uint8)
 
