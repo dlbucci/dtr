@@ -18,6 +18,7 @@ def setup_settings_window():
                        lambda x: set_setting("view", x))
     cv2.createTrackbar(TARGET_RADIUS, SETTINGS_WINDOW, 30, 100,
                        lambda x: state.set_target_radius(x))
+    cv2.setTrackbarPos(TARGET_RADIUS, SETTINGS_WINDOW, state.target_radius)
  
     dummy = np.zeros((1, 400, 3), np.uint8)
     cv2.imshow(SETTINGS_WINDOW, dummy)

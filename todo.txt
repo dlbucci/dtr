@@ -1,0 +1,9 @@
+- Higher Resolution
+- Calibration
+- Two Tripods with Plank
+- One Process per Robot
+- Pathfinding
+  + Path Display
+- Error Displays
+- Voice Over
+- Better GUI?

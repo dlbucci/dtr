@@ -14,7 +14,7 @@ import cv2
 from state import *
 
 BLUETOOTH_BAUDRATE = 115200
-BLUETOOTH_TIMEOUT = 10
+BLUETOOTH_TIMEOUT = 0
 FORWARD = "f"
 BACKWARD = "b"
 LEFT = "l"
@@ -112,8 +112,7 @@ class Robot(object):
                                  (self.back_box[0] + self.back_box[2], self.back_box[1] + self.back_box[3]), (0, 255, 0), 2) 
 
     def resync(self):
-        self.serial = serial.Serial(self.device, baudrate=BLUETOOTH_BAUDRATE,
-                                    timeout=BLUETOOTH_TIMEOUT)
+        self.serial = serial.Serial(self.device, baudrate=BLUETOOTH_BAUDRATE)
 
     def set_hists(self, frame):
         self.front_hist = self._hist_for((0, 0, 640, 480), frame,
@@ -240,22 +239,25 @@ class Robot(object):
                     if msg[1] == ":":
                         self.error_state = 1
                     elif msg[1] == "D":
-                        self.error_state = 2
+                        self.error_state = 3
         except Queue.Empty:
             pass
 
     def on_error(self, time):
-        if self.error_state == 2:
-            self.error_state = 3
+        if self.error_state == 3:
+            self.error_state = 4
             if random.randint(0, 1) == 1:
                 self.right()
             else:
                 self.left()
             return random.choice(TURN_TIMES)
-        elif self.error_state == 3:
+        elif self.error_state == 4:
             self.error_state = 0
             self.forward()
             return random.choice(FORWARD_TIMES)
+        elif self.error_state == 1:
+            self.error = 2
+            return 1
         else:
             return 1
 
