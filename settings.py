@@ -9,8 +9,10 @@ from state import *
 SETTINGS_WINDOW = "Settings"
 
 TARGET_RADIUS = "Target Radius:"
+STATE_SETTING = "State:"
 VIEW_SETTING = "View:"
 LAST_VIEW = 4
+LAST_STATE = 20
 
 class GeneralSettingsFrame(Frame):
     def __init__(self, master):
@@ -20,6 +22,11 @@ class GeneralSettingsFrame(Frame):
 
         self.title = Label(self, text=SETTINGS_WINDOW)
         self.title.pack(side="top")
+
+        self.state = Scale(self, variable=state.state,
+                                from_=0, to=LAST_STATE, orient=HORIZONTAL,
+                                label=STATE_SETTING)
+        self.state.pack(side="top")
 
         self.view = Scale(self, variable=state.view,
                                 from_=0, to=LAST_VIEW, orient=HORIZONTAL,

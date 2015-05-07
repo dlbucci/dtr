@@ -130,7 +130,6 @@ class Robot(object):
 
     def set_front_box(self, p1, p2, hsv):
         self.front_box = self._box_from(p1, p2)
-        print self.front_box
         self.front_hist = self._hist_for(self.front_box, hsv,
                                      self.front_hue.min_hue,
                                      self.front_hue.max_hue)
@@ -143,7 +142,6 @@ class Robot(object):
 
     def set_back_box(self, p1, p2, hsv):
         self.back_box = self._box_from(p1, p2)
-        print self.back_box
         self.back_hist = self._hist_for(self.back_box, hsv,
                                     self.back_hue.min_hue,
                                     self.back_hue.max_hue)
@@ -236,9 +234,7 @@ class Robot(object):
         try:
             while True:
                 msg = self.messaging_queue.get(block=False)
-                print msg
                 if msg[0] == "E":
-                    print msg,
                     if msg[1] == ":":
                         self.error_state = 1
                     elif msg[1] == "D":

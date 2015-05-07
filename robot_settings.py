@@ -38,14 +38,12 @@ class RobotSettingsWindow(Frame):
         self.track_robot_button = Checkbutton(self, variable=self.robot.tracking,text=TRACK_ROBOT)
         self.track_robot_button.pack()
 
-        self.robot.left_motor = IntVar()
         self.left_motor_scale = Scale(self, variable=self.robot.left_motor,
                                             from_=0, to=255, orient=HORIZONTAL,
                                             command=self.set_motor_command,
                                             label="Left Motor")
         self.left_motor_scale.pack()
 
-        self.robot.right_motor = IntVar()
         self.right_motor_scale = Scale(self, variable=self.robot.right_motor,
                                              from_=0, to=255, orient=HORIZONTAL,
                                              command=self.set_motor_command,
@@ -107,7 +105,6 @@ class RobotSettingsWindow(Frame):
         if self.robot.running.get() == 0:
             self.robot.stop()
     def set_motor_command(self, x):
-        print x
         self.robot.set_motors()
 
     def pick_circles(self, x):

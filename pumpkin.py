@@ -28,21 +28,23 @@ def track_some_shit(frame):
     robot1.draw(frame)
 
 def on_click(event, x, y, flags, param):
+    print x, y
     if event == cv2.EVENT_LBUTTONDOWN:
-        if state.state == State.AWAITING_CLICK and state.callback:
+        current_state = state.state.get()
+        if current_state == State.AWAITING_CLICK and state.callback:
             state.callback(x, y, state.last_hsv)
-            state.state = State.IDLE
-        elif state.state == 0 or state.state == 3:
+            state.state.set(State.IDLE)
+        elif current_state == 0 or current_state == 3:
             p1.x = x
             p1.y = y
-            state.state += 1
+            state.state.set(current_state + 1)
             print p1.x, p1.y
-        elif state.state == 1 or state.state == 4:
+        elif current_state == 1 or current_state == 4:
             p2.x = x
             p2.y = y
-            state.state += 1
+            state.state.set(current_state + 1)
             print p2.x, p2.y
-        elif state.state == State.IDLE:
+        elif current_state == State.IDLE:
             state.target.x = x
             state.target.y = y
 
@@ -98,14 +100,15 @@ def step(queue, image_label):
         hsv = cv2.bitwise_and(hsv, hsv, mask=mask)
         cv2.imshow(WINDOW_TITLE, cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR))
     else:
-        if state.state == 1:
+        current_state = state.state.get()
+        if current_state == 1:
             state.selected_robot.set_front_box_2(p1, hsv)
-            state.state = 3
-        if state.state == 4:
+            state.state.set(3)
+        if current_state == 4:
             state.selected_robot.set_back_box_2(p1, hsv) 
-            state.state = 6
+            state.state.set(6)
 
-        if state.state < 6:
+        if current_state < 6:
             robot0.draw(frame)
             robot1.draw(frame)
         else:
@@ -123,6 +126,8 @@ def setup_window():
     GeneralSettingsFrame(root)
     RobotSettingsWindow(root, robot0)
     RobotSettingsWindow(root, robot1)
+    cv2.namedWindow(WINDOW_TITLE)
+    cv2.setMouseCallback(WINDOW_TITLE, on_click)
 
 def main():
     """

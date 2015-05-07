@@ -61,7 +61,8 @@ class State(object):
     AWAITING_CLICK = 11
 
     def __init__(self):
-        self.state = State.IDLE
+        self.state = IntVar()
+        self.state.set(State.IDLE)
         self.selected_robot = None
         self.target = Point()
         self.target_radius = IntVar()
@@ -73,7 +74,7 @@ class State(object):
         self.last_hsv = None
 
     def set_state(self, state, callback):
-        self.state = state
+        self.state.set(state)
         self.callback = callback
     
     def set_target_radius(self, dicks):
