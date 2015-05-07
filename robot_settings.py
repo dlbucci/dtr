@@ -8,6 +8,7 @@ from robot import *
 WINDOW_FMT = "%s Settings"
 
 RUN_ROBOT = "Run Robot:"
+TRACK_ROBOT = "Track Robot:"
 PICK_CIRCLES = "Pick Circles:"
 LEFT_MOTOR = "Left Motor Speed:"
 RIGHT_MOTOR = "Right Motor Speed:"
@@ -26,6 +27,7 @@ class RobotSettingsWindow(object):
         cv2.namedWindow(self.WINDOW)
 
         cv2.createTrackbar(RUN_ROBOT, self.WINDOW, 0, 1, self.run_robot)
+        cv2.createTrackbar(TRACK_ROBOT, self.WINDOW, 0, 1, self.track_robot)
 
         cv2.createTrackbar(LEFT_MOTOR, self.WINDOW, 0, 255, self.left_motor)
         cv2.setTrackbarPos(LEFT_MOTOR, self.WINDOW, robot.left_motor)
@@ -58,6 +60,8 @@ class RobotSettingsWindow(object):
         self.robot.running = True if x == 1 else False
         if not self.robot.running:
             self.robot.stop()
+    def track_robot(self, x):
+        self.robot.tracking = True if x == 1 else False
 
     def left_motor(self, x):
         self.robot.set_motors(left=x)

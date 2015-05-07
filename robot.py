@@ -1,5 +1,6 @@
 #/usr/bin/env python
 
+import atexit
 import math
 import multiprocessing as mp
 import Queue
@@ -56,19 +57,20 @@ class Robot(object):
         self.back_hue = back_hue
 
         self.running = False
+        self.tracking = False
 
         self.set_motors(left_motor, right_motor)
 
         self.messaging_queue = mp.Queue()
         self.listener = mp.Process(target=self.listen_for_errors, args=(self.messaging_queue,))
+        atexit.register(self.listener.terminate)
         self.listener.start()
         self.error_state = 0
     
     def update(self, hsv, time):
-        if not self.running:
-            return
         if (self.front_box is None or self.front_hist is None or
-            self.back_box is None or self.back_hist is None):
+            self.back_box is None or self.back_hist is None or
+            not self.tracking):
             return
         mask = cv2.inRange(hsv, np.array((self.front_hue.min_hue, 0, 0)),
                                 np.array((self.front_hue.max_hue, 255, 255)))
@@ -78,6 +80,9 @@ class Robot(object):
                                 np.array((self.back_hue.max_hue, 255, 255)))
         hsv1 = cv2.bitwise_and(hsv, hsv, mask=mask)
         self.back_box = self.track(hsv1, self.back_box, self.back_hist)
+        
+        if not self.running:
+            return
 
         self.check_for_error()
         if self.error_state > 0:
@@ -90,14 +95,14 @@ class Robot(object):
         back_proj = cv2.calcBackProject([hsv], [0], hist, [0, 180], 1)
 
         # apply meanshift to get the new location
-        ret, box = cv2.CamShift(back_proj, box, TERM_CRIT)
+        ret, box = cv2.meanShift(back_proj, box, TERM_CRIT)
 
         # do this
         self.update_pos(self.front_box[0] + self.front_box[2]/2, 
                         self.front_box[1] + self.front_box[3]/2)
 
-        return (box[0], box[1], max(1, min(box[2], 40)), max(1, min(box[3], 40)))
-        
+        return box
+
     def draw(self, frame):
         if self.front_box is not None:
             cv2.rectangle(frame, (self.front_box[0], self.front_box[1]),
