@@ -10,9 +10,8 @@ import numpy as np
 import time
 
 from state import *
-#from pumpkin import runBalls, step
 
-def raspberryRun(step):
+def raspberryRun(queue):
     camera = PiCamera()
     camera.resolution = CAP_DIM
     camera.framerate = CAP_FPS
@@ -24,7 +23,8 @@ def raspberryRun(step):
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         image = frame.array
 
-        step(image)
+        queue.put(image)
+        queue.get()
 
         rawCapture.truncate(0)
 
@@ -48,5 +48,6 @@ def macRun(coverage):
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
+    raspberryRun(None)
     print "run pumpkin.py, you dumb ass"
     raise "Dumbass Error"

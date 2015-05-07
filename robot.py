@@ -71,10 +71,9 @@ class Robot(object):
         atexit.register(self.kill_listener)
     
     def update(self, hsv, time):
-        if not self.running:
-            return
         if (self.front_box is None or self.front_hist is None or
-            self.back_box is None or self.back_hist is None):
+            self.back_box is None or self.back_hist is None or
+            not self.tracking.get()):
             return
         mask = cv2.inRange(hsv, np.array((self.front_hue.min_hue, 0, 0)),
                                 np.array((self.front_hue.max_hue, 255, 255)))
@@ -85,6 +84,8 @@ class Robot(object):
         hsv1 = cv2.bitwise_and(hsv, hsv, mask=mask)
         self.back_box = self.track(hsv1, self.back_box, self.back_hist)
 
+        if not self.running.get():
+            return
         self.check_for_error()
         if self.error_state > 0:
             self.next_move_time = time + self.on_error(time)

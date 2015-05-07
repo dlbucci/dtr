@@ -10,6 +10,7 @@ from robot import *
 WINDOW_FMT = "%s Settings"
 
 RUN_ROBOT = "Run Robot:"
+TRACK_ROBOT = "Track Robot:"
 PICK_CIRCLES = "Pick Circles:"
 LEFT_MOTOR = "Left Motor Speed:"
 RIGHT_MOTOR = "Right Motor Speed:"
@@ -31,10 +32,11 @@ class RobotSettingsWindow(Frame):
         self.title = Label(self, text=self.WINDOW)
         self.title.pack(side="top")
 
-        self.robot.running = IntVar()
-        self.run_robot_button = Checkbutton(self, variable=self.robot.running,
-                                                  text="Run Robot")
+        self.run_robot_button = Checkbutton(self, variable=self.robot.running, text=RUN_ROBOT)
         self.run_robot_button.pack()
+
+        self.track_robot_button = Checkbutton(self, variable=self.robot.tracking,text=TRACK_ROBOT)
+        self.track_robot_button.pack()
 
         self.robot.left_motor = IntVar()
         self.left_motor_scale = Scale(self, variable=self.robot.left_motor,
@@ -50,11 +52,6 @@ class RobotSettingsWindow(Frame):
                                              label="Right Motor")
         self.right_motor_scale.pack()
        
-        #self.robot.running = IntVar()
-        #self.run_robot_button = Checkbutton(self, variable=self.robot.running,
-        #                                          text="Run Robot")
-        #self.run_robot_button.pack({"side": "left"})
-
         self.front_min_hue_scale = Scale(self, variable=self.robot.front_hue.min_hue,
                                          from_=0, to=180, orient=HORIZONTAL,
                                          label=FRONT_MIN_HUE)

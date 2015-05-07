@@ -8,7 +8,7 @@ root = Tk()
 import cv2
 
 CAP_DIM = (480, 360)
-CAP_FPS = 32
+CAP_FPS = 30
 
 WINDOW_TITLE = "DTR"
 
@@ -64,8 +64,10 @@ class State(object):
         self.state = State.IDLE
         self.selected_robot = None
         self.target = Point()
-        self.set_target_radius(INITIAL_TARGET_RADIUS)
-        self.view = 0
+        self.target_radius = IntVar()
+        self.target_radius.set(INITIAL_TARGET_RADIUS)
+        self.target_radius_squared = INITIAL_TARGET_RADIUS ** 2
+        self.view = IntVar()
         self.callback = None
         self.last_frame = None
         self.last_hsv = None
@@ -74,9 +76,8 @@ class State(object):
         self.state = state
         self.callback = callback
     
-    def set_target_radius(self, target_radius):
-        self.target_radius = target_radius
-        self.target_radius_squared = self.target_radius ** 2
+    def set_target_radius(self, dicks):
+        self.target_radius_squared = self.target_radius.get() ** 2
 
 class HueSettings(object):
     def __init__(self, min_hue=0, max_hue=180):
