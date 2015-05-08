@@ -28,7 +28,7 @@ def sfh_callback(x, y, hsv):
     mask = cv2.inRange(hsv, np.array((state.floor_hue.min_hue, 0, 0)),
                             np.array((state.floor_hue.max_hue, 255, 255)))
     hsv = cv2.bitwise_and(hsv, hsv, mask=mask)
-    state.graph = Graph(10, hsv) 
+    state.graph = Graph(20, hsv) 
 
 def set_min_hue(trackbar, hue, x):
     hue.min_hue = x

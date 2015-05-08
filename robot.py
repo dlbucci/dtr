@@ -348,15 +348,20 @@ class Robot(object):
         return self.write("h\n")
 
     def say_cliff_sensor(self):
-        os.system(SOUND_CMD_FMT % (self.sound_folder + "CliffSensor.wav"))
+        pass
+        #os.system(SOUND_CMD_FMT % (self.sound_folder + "CliffSensor.wav"))
     def say_hi(self):
-        os.system(SOUND_CMD_FMT % (self.sound_folder + "Hi.wav"))
+        pass
+        #os.system(SOUND_CMD_FMT % (self.sound_folder + "Hi.wav"))
     def say_on_target(self):
-        os.system(SOUND_CMD_FMT % (self.sound_folder + "OnTarget.wav"))
+        pass
+        #os.system(SOUND_CMD_FMT % (self.sound_folder + "OnTarget.wav"))
     def say_range_sensor(self):
-        os.system(SOUND_CMD_FMT % (self.sound_folder + "RangeSensor.wav"))
+        pass
+        #os.system(SOUND_CMD_FMT % (self.sound_folder + "RangeSensor.wav"))
     def say_target_picked(self):
-        os.system(SOUND_CMD_FMT % (self.sound_folder + "TargetPicked.wav"))
+        pass
+        #os.system(SOUND_CMD_FMT % (self.sound_folder + "TargetPicked.wav"))
 
 try:
     robot0 = Robot("Firecracker", "/dev/rfcomm0", "Sounds/FireCracker/",

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import cv2
 import heapq
 
 class PriorityQueue(object):
@@ -18,12 +19,12 @@ class PriorityQueue(object):
 dirs = ((-1,-1), (-1,0), (-1,1), (0,-1), (0,1), (1,-1), (1,0), (1,1))
 class Graph(object):
     def __init__(self, box_size, hsv):
-        self.width = 48
-        self.height = 36
+        self.width = 480 / box_size
+        self.height = 360 / box_size
         self.box_size = box_size
         self.bhs = box_size / 2
         def gen(x, y):
-            return (x, y) if hsv[box_size*y+self.bhs, box_size*x+self.bhs, 0] != 0 else None 
+            return (x, y) if hsv[box_size*y+self.bhs, box_size*x+self.bhs, 2] != 0 else None 
         self.data = [[gen(x, y) for x in xrange(self.width)] for y in xrange(self.height)]
 
     def neighbors(self, (x, y)):
@@ -35,9 +36,11 @@ class Graph(object):
             yield (nx, ny)
 
     def draw(self, frame):
-        for y in self.data:
-            for x in self.data[y]:
-                cv2.circle(frame, (x, y), self.bhs, (255, 255, 255), 2)
+        for y, L in enumerate(self.data):
+            for x, d in enumerate(L):
+                if d is not None:
+                    cv2.circle(frame, (x*self.box_size+self.bhs, y*self.box_size+self.bhs),
+                               2, (255, 255, 255), 2)
 
 def reconstruct_path(came_from, start, goal):
     current = goal
@@ -46,6 +49,13 @@ def reconstruct_path(came_from, start, goal):
         current = came_from[current]
         path.append(current)
     return path
+
+def heuristic((x1, y1), (x2, y2)):
+    dx = abs(x1-x2)
+    dy = abs(y1-y2)
+    mi = min(dx, dy)
+    ma = max(dx, dy)
+    return ma + .4*mi
 
 def a_star_search(graph, start, goal):
     frontier = PriorityQueue()

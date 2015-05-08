@@ -19,7 +19,7 @@ def raspberryRun(step):
 
     rawCapture = PiRGBArray(camera, size=CAP_DIM)
 
-    time.sleep(1) # allow the camera to warm up
+    time.sleep(3) # allow the camera to warm up
 
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         image = frame.array
