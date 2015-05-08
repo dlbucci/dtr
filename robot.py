@@ -64,6 +64,7 @@ class Robot(object):
         self.running = False
         self.tracking = False
 
+        self.on_target = False
         self.target = Point()
 
         self.set_motors(left_motor, right_motor)
@@ -207,8 +208,12 @@ class Robot(object):
         dx = target.x - self.x
         dy = target.y - self.y
         if (dx ** 2 + dy ** 2 < state.target_radius_squared):
+            if not self.on_target:
+                self.say_on_target()
+                self.on_target = True
             self.stop()
             return MOVE_TIME_DELTA
+        self.on_target = False
 
         odx = (self.front_box[0] + self.front_box[2]/2) - (self.back_box[0] + self.back_box[2]/2)
         ody = (self.front_box[1] + self.front_box[3]/2) - (self.back_box[1] + self.back_box[3]/2)
@@ -275,10 +280,13 @@ class Robot(object):
     def note_obstacle(self, msg):
         if msg == "FIR\n":
             state.obstacles.append(Obstacle(self.front_box[0], self.front_box[1], OBSTACLE_WALL, self))
+            self.say_range_sensor()
         elif msg == "CL\n":
             state.obstacles.append(Obstacle(self.front_box[0], self.front_box[1], OBSTACLE_CLIFF, self))
+            self.say_cliff_sensor()
         elif msg == "CR\n":
             state.obstacles.append(Obstacle(self.front_box[0], self.front_box[1], OBSTACLE_CLIFF, self))
+            self.say_cliff_sensor()
         elif msg == "B\n":
             state.obstacles.append(Obstacle(self.front_box[0], self.front_box[1], OBSTACLE_WALL, self))
 
@@ -339,15 +347,22 @@ class Robot(object):
     def activate_sensors(self):
         return self.write("h\n")
 
+    def say_cliff_sensor(self):
+        os.system(SOUND_CMD_FMT % (self.sound_folder + "CliffSensor.wav"))
     def say_hi(self):
         os.system(SOUND_CMD_FMT % (self.sound_folder + "Hi.wav"))
+    def say_on_target(self):
+        os.system(SOUND_CMD_FMT % (self.sound_folder + "OnTarget.wav"))
+    def say_range_sensor(self):
+        os.system(SOUND_CMD_FMT % (self.sound_folder + "RangeSensor.wav"))
+    def say_target_picked(self):
+        os.system(SOUND_CMD_FMT % (self.sound_folder + "TargetPicked.wav"))
 
 try:
     robot0 = Robot("Firecracker", "/dev/rfcomm0", "Sounds/FireCracker/",
                    HueSettings(R0_FRONT_MIN_HUE, R0_FRONT_MAX_HUE),
                    HueSettings(R0_BACK_MIN_HUE, R0_BACK_MAX_HUE),
                    R0_LEFT_MOTOR, R0_RIGHT_MOTOR)
-    robot0.say_hi()
     bts0 = serial.Serial("/dev/rfcomm0", baudrate=BLUETOOTH_BAUDRATE)
     print "Connected to Robot 0...",
     try:

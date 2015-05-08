@@ -36,9 +36,11 @@ def on_click(event, x, y, flags, param):
             print p2.x, p2.y
         elif state.state == State.IDLE:
             robot0.target.x, robot0.target.y = x, y
+            robot0.say_target_picked()
             state.state = State.IDLE2
         elif state.state == State.IDLE2:
             robot1.target.x, robot1.target.y = x, y
+            robot1.say_target_picked()
             state.state = State.IDLE
 
 def step(frame):
@@ -58,6 +60,7 @@ def step(frame):
         state.state = 3
     if state.state == 4:
         state.selected_robot.set_back_box_2(p1, hsv) 
+        state.selected_robot.say_hi()
         state.state = 6
 
     if state.state < 6:
