@@ -50,7 +50,6 @@ class Robot(object):
         self.y = 0
         self.last_xs = []
         self.last_ys = []
-        self.did_forward_last = True
         self.next_move_time = 0
 
         self.front_box = None
@@ -77,10 +76,12 @@ class Robot(object):
             self.back_box is None or self.back_hist is None or
             not self.tracking):
             return
+
         mask = cv2.inRange(hsv, np.array((self.front_hue.min_hue, 0, 0)),
                                 np.array((self.front_hue.max_hue, 255, 255)))
         hsv1 = cv2.bitwise_and(hsv, hsv, mask=mask)
         self.front_box = self.track(hsv1, self.front_box, self.front_hist)
+
         mask = cv2.inRange(hsv, np.array((self.back_hue.min_hue, 0, 0)),
                                 np.array((self.back_hue.max_hue, 255, 255)))
         hsv1 = cv2.bitwise_and(hsv, hsv, mask=mask)
@@ -93,6 +94,7 @@ class Robot(object):
         if self.error_state > 0:
             self.next_move_time = time + self.on_error(time)
             return
+
         if (time >= self.next_move_time):
             self.next_move_time = time + self.make_move(state.target)
 
@@ -117,7 +119,10 @@ class Robot(object):
                                  (self.back_box[0] + self.back_box[2], self.back_box[1] + self.back_box[3]), (0, 255, 0), 2) 
 
     def resync(self):
-        self.serial = serial.Serial(self.device, baudrate=BLUETOOTH_BAUDRATE)
+        try:
+            self.serial = serial.Serial(self.device, baudrate=BLUETOOTH_BAUDRATE)
+        except:
+            self.serial = None
 
     def set_hists(self, frame):
         self.front_hist = self._hist_for((0, 0, 640, 480), frame,
@@ -209,23 +214,16 @@ class Robot(object):
             angle_delta += 2*math.pi
 
         if abs(angle_delta) < ANGLE_ERROR_RADS:
-            if self.did_forward_last:
-                self.forward()
-            else:
-                self.backward()
-            return MOVE_TIME_DELTA
+            self.forward()
         elif angle_delta <= -ANGLE_ERROR_RADS:
-            if self.did_forward_last:
-                self.left()
-            else:
-                self.right()
+            self.left()
         elif angle_delta > ANGLE_ERROR_RADS:
-            if self.did_forward_last:
-                self.right()
-            else:
-                self.left()
+            self.right()
 
         return TURN_TIME_DELTA
+    
+    def make_move_2(self, target):
+        pass
 
     # this is run in a subprocess and listens for errors
     def listen_for_errors(self, q):
@@ -293,33 +291,32 @@ class Robot(object):
         except:
             return 0
 
-
     def forward(self):
-            return self.write(self.cmd_format_string % FORWARD)
+        return self.write(self.cmd_format_string % FORWARD)
 
     def backward(self):
-            return self.write(self.cmd_format_string % BACKWARD)
+        return self.write(self.cmd_format_string % BACKWARD)
 
     def left(self):
-            return self.write(self.cmd_format_string % LEFT)
+        return self.write(self.cmd_format_string % LEFT)
 
     def right(self):
-            return self.write(self.cmd_format_string % RIGHT)
+        return self.write(self.cmd_format_string % RIGHT)
 
     def stop(self):
-            return self.write(STOP)
+        return self.write(STOP)
 
     def auto(self):
-            return self.write("a\n")
+        return self.write("a\n")
 
     def manual(self):
-            return self.write("m\n")
+        return self.write("m\n")
 
     def deactivate_sensors(self):
-            return self.write("d\n")
+        return self.write("d\n")
 
     def activate_sensors(self):
-            return self.write("h\n")
+        return self.write("h\n")
 
     def say_hi(self):
         os.system(SOUND_CMD_FMT % (self.sound_folder + "Hi.wav"))

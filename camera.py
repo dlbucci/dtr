@@ -31,7 +31,7 @@ def raspberryRun(step):
         if (cv2.waitKey(1) & 0xff) == ord('q'):
             break
 
-def macRun(coverage):
+def macRun(step):
     cap = cv2.VideoCapture(0)
 
     while True:

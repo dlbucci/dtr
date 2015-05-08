@@ -53,8 +53,8 @@ class Point(object):
 
 class State(object):
     IDLE = 6
+    IDLE2 = 7
 
-    AWAITING_FRONT_HUE = 10
     AWAITING_CLICK = 11
 
     def __init__(self):
@@ -69,6 +69,8 @@ class State(object):
 
         self.last_fps = 0
         self.frame_count = 0
+
+        self.floor_hue = HueSettings()
 
     def set_state(self, state, callback):
         self.state = state
