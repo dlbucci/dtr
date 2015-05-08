@@ -2,6 +2,8 @@
 
 import cv2
 import heapq
+import numpy as np
+from point import Point
 
 class PriorityQueue(object):
     def __init__(self):
@@ -10,7 +12,7 @@ class PriorityQueue(object):
     def empty(self):
         return len(self.elements) == 0
 
-    def push(self, item, priority):
+    def put(self, item, priority):
         heapq.heappush(self.elements, (priority, item))
 
     def get(self):
@@ -24,7 +26,10 @@ class Graph(object):
         self.box_size = box_size
         self.bhs = box_size / 2
         def gen(x, y):
-            return (x, y) if hsv[box_size*y+self.bhs, box_size*x+self.bhs, 2] != 0 else None 
+            if hsv[box_size*y+self.bhs, box_size*x+self.bhs, 2] != 0:
+                return (x, y)
+            else:
+                return None
         self.data = [[gen(x, y) for x in xrange(self.width)] for y in xrange(self.height)]
 
     def neighbors(self, (x, y)):
@@ -34,6 +39,31 @@ class Graph(object):
                 self.data[ny][nx] == None):
                 continue
             yield (nx, ny)
+    
+    def point_for(self, x, y):
+        ix, iy = int(x / self.box_size), int(y / self.box_size)
+        if self.data[iy][ix] is not None:
+            return (ix, iy)
+        else:
+            i = 1
+            for i in xrange(3):
+                if iy-i >= 0 and self.data[iy-i][ix] is not None:
+                    return (ix, iy-i)
+                if iy+i < len(self.data) and self.data[iy+i][ix] is not None:
+                    return (ix, iy+i)
+                if ix-i >= 0 and self.data[iy][ix-i] is not None:
+                    return (ix-i, iy)
+                if ix+i < len(self.data[iy]) and self.data[iy][ix+i] is not None:
+                    return (ix+i, iy)
+            return None
+    def point_to_pos(self, (x, y)):
+        return Point(x*self.box_size+self.bhs, y*self.box_size+self.bhs)
+
+    def cost(self, (ax, ay), (bx, by)):
+        if ax == bx or ay == by:
+            return 1
+        else:
+            return 1.4
 
     def draw(self, frame):
         for y, L in enumerate(self.data):
@@ -67,6 +97,7 @@ def a_star_search(graph, start, goal):
 
     while not frontier.empty():
         current = frontier.get()
+        print current
 
         if current == goal:
             break

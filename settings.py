@@ -25,10 +25,7 @@ def sfh_callback(x, y, hsv):
     cv2.setTrackbarPos(SET_FLOOR_HUE, SETTINGS_WINDOW, 0)
     cv2.setTrackbarPos(FLOOR_MIN_HUE, SETTINGS_WINDOW, state.floor_hue.min_hue)
     cv2.setTrackbarPos(FLOOR_MAX_HUE, SETTINGS_WINDOW, state.floor_hue.max_hue)
-    mask = cv2.inRange(hsv, np.array((state.floor_hue.min_hue, 0, 0)),
-                            np.array((state.floor_hue.max_hue, 255, 255)))
-    hsv = cv2.bitwise_and(hsv, hsv, mask=mask)
-    state.graph = Graph(20, hsv) 
+    state.regenerate_graph(hsv)
 
 def set_min_hue(trackbar, hue, x):
     hue.min_hue = x

@@ -3,12 +3,16 @@
 import cv2
 import numpy as np
 from state import *
+from point import Point
 from robot import *
+
+# fuck emily
 
 WINDOW_FMT = "%s Settings"
 
 RUN_ROBOT = "Run Robot:"
 TRACK_ROBOT = "Track Robot:"
+PATHFIND = "Pathfind:"
 PICK_CIRCLES = "Pick Circles:"
 LEFT_MOTOR = "Left Motor Speed:"
 RIGHT_MOTOR = "Right Motor Speed:"
@@ -28,6 +32,7 @@ class RobotSettingsWindow(object):
 
         cv2.createTrackbar(RUN_ROBOT, self.WINDOW, 0, 1, self.run_robot)
         cv2.createTrackbar(TRACK_ROBOT, self.WINDOW, 0, 1, self.track_robot)
+        cv2.createTrackbar(PATHFIND, self.WINDOW, 0, 1, self.pathfind)
 
         cv2.createTrackbar(LEFT_MOTOR, self.WINDOW, 0, 255, self.left_motor)
         cv2.setTrackbarPos(LEFT_MOTOR, self.WINDOW, robot.left_motor)
@@ -57,11 +62,13 @@ class RobotSettingsWindow(object):
         cv2.imshow(self.WINDOW, hue_window)
 
     def run_robot(self, x):
-        self.robot.running = True if x == 1 else False
+        self.robot.running = (x == 1)
         if not self.robot.running:
             self.robot.stop()
     def track_robot(self, x):
-        self.robot.tracking = True if x == 1 else False
+        self.robot.tracking = (x == 1)
+    def pathfind(self, x):
+        self.robot.pathfind = (x == 1)
 
     def left_motor(self, x):
         self.robot.set_motors(left=x)

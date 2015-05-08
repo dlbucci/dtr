@@ -3,6 +3,9 @@
 import math
 
 import cv2
+import numpy as np
+from point import Point
+from search import Graph
 
 CAP_DIM = (480, 360)
 CAP_FPS = 30
@@ -17,8 +20,8 @@ TARGET_CIRCLE_THICKNESS = 2
 ANGLE_ERROR_RADS = math.pi / 4 # error margin for one angle
 
 # MOVEMENT TIMES
-MOVE_TIME_DELTA = .5
-TURN_TIME_DELTA = .25
+MOVE_TIME_DELTA = .2
+TURN_TIME_DELTA = .2
 # ERROR RECOVERY TIMES
 TURN_TIMES = (.5, 1, 1.5, 2)
 FORWARD_TIMES = (.5, 1, 1.5, 2)
@@ -26,7 +29,7 @@ FORWARD_TIMES = (.5, 1, 1.5, 2)
 # MEAN SHIFT TERMINATION CRITERIA
 TERM_CRIT = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
 
-ROBOT_BOX_HALF_WIDTH = 10
+ROBOT_BOX_HALF_WIDTH = 15
 
 # Firecracker (Robot 0)
 R0_FRONT_MIN_HUE = 0
@@ -45,11 +48,6 @@ R1_LEFT_MOTOR = 180
 R1_RIGHT_MOTOR = 190
 
 HUE_HALF_RANGE = 10
-
-class Point(object):
-    def __init__(self, x=0, y=0):
-        self.x = x
-        self.y = y
 
 class State(object):
     IDLE = 6
@@ -82,6 +80,12 @@ class State(object):
     def set_target_radius(self, target_radius):
         self.target_radius = target_radius
         self.target_radius_squared = self.target_radius ** 2
+
+    def regenerate_graph(self, hsv):
+        mask = cv2.inRange(hsv, np.array((self.floor_hue.min_hue, 0, 0)),
+                                np.array((self.floor_hue.max_hue, 255, 255)))
+        hsv = cv2.bitwise_and(hsv, hsv, mask=mask)
+        self.graph = Graph(ROBOT_BOX_HALF_WIDTH * 2, hsv)
 
 class HueSettings(object):
     def __init__(self, min_hue=0, max_hue=180):

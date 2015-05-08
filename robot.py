@@ -3,7 +3,7 @@
 import atexit
 import math
 import multiprocessing as mp
-import os
+import subprocess
 import Queue
 import random
 import serial
@@ -13,6 +13,8 @@ import numpy as np
 import cv2
 
 from state import *
+from point import Point
+from search import *
 
 BLUETOOTH_BAUDRATE = 115200
 BLUETOOTH_TIMEOUT = 0
@@ -28,7 +30,7 @@ LAST_POS_LIMIT = 5
 ERROR = "error"
 ERROR_DONE = "error done"
 
-SOUND_CMD_FMT = "omxplayer %s"
+SOUND_CMD_FMT = "omxplayer"
 
 def median(L):
     return (sorted(L))[(len(L)/2)]
@@ -66,6 +68,9 @@ class Robot(object):
 
         self.on_target = False
         self.target = Point()
+
+        self.pathfind = False
+        self.path = None
 
         self.set_motors(left_motor, right_motor)
 
@@ -128,6 +133,9 @@ class Robot(object):
                                  (self.back_box[0] + self.back_box[2], self.back_box[1] + self.back_box[3]), (0, 255, 0), 2) 
         cv2.circle(frame, (self.target.x, self.target.y), state.target_radius,
                    TARGET_CIRCLE_COLOR, TARGET_CIRCLE_THICKNESS)
+        if self.path is not None:
+            path = np.array(map(lambda (x, y): (x*40+20, y*40+20), self.path))
+            cv2.polylines(frame, [path], False, (0, 255, 0), 2)
 
     def resync(self):
         try:
@@ -215,11 +223,19 @@ class Robot(object):
             return MOVE_TIME_DELTA
         self.on_target = False
 
+        if (state.graph is not None) and self.pathfind:
+            return self.make_move_2(target)
+        else:
+            return self.dumb_move(target, dx, dy)
+
+    def dumb_move(self, target, dx=None, dy=None):
+        dx = target.x - self.x if dx is None else dx
+        dy = target.y - self.y if dy is None else dy
         odx = (self.front_box[0] + self.front_box[2]/2) - (self.back_box[0] + self.back_box[2]/2)
         ody = (self.front_box[1] + self.front_box[3]/2) - (self.back_box[1] + self.back_box[3]/2)
 
-        target_angle_rad = math.atan2(dy, dx)
-        current_angle_rad = math.atan2(ody, odx)
+        target_angle_rad = math.atan2(float(dy), float(dx))
+        current_angle_rad = math.atan2(float(ody), float(odx))
         angle_delta = target_angle_rad - current_angle_rad
         if angle_delta > math.pi:
             angle_delta -= 2*math.pi
@@ -236,7 +252,21 @@ class Robot(object):
         return TURN_TIME_DELTA
     
     def make_move_2(self, target):
-        pass
+        self_point = state.graph.point_for(self.front_box[0] + self.front_box[2]/2,
+            self.front_box[1] + self.front_box[3]/2)
+        target_point = state.graph.point_for(self.target.x, self.target.y)
+        if self_point is None or target_point is None:
+            return self.dumb_move(self.target)
+        came_from, cost = a_star_search(state.graph, self_point, target_point)
+        self.path = reconstruct_path(came_from, self_point, target_point)
+        if len(self.path) > 1:
+            target = state.graph.point_to_pos(self.path[1])
+            return self.dumb_move(self, target.x-self.x, target.y-self.y)
+        elif len(self.path) == 1:
+            target = state.graph.point_to_pos(self.path[0])
+            return self.dumb_move(self, target.x-self.x, target.y-self.y)
+        else:
+            return self.dumb_move(self, target.x - self.x, target.y - self.y)
 
     # this is run in a subprocess and listens for errors
     def listen_for_errors(self, q):
@@ -272,9 +302,10 @@ class Robot(object):
             self.forward()
             return random.choice(FORWARD_TIMES)
         elif self.error_state == 1:
-            self.error = 2
+            self.error_state = 2
             return 1
         else:
+            self.error_state = 3
             return 1
 
     def note_obstacle(self, msg):
@@ -349,19 +380,19 @@ class Robot(object):
 
     def say_cliff_sensor(self):
         pass
-        #os.system(SOUND_CMD_FMT % (self.sound_folder + "CliffSensor.wav"))
+        #subprocess.Popen([SOUND_CMD_FMT, (self.sound_folder + "CliffSensor.wav")])
     def say_hi(self):
         pass
-        #os.system(SOUND_CMD_FMT % (self.sound_folder + "Hi.wav"))
+        #subprocess.Popen([SOUND_CMD_FMT, (self.sound_folder + "Hi.wav")])
     def say_on_target(self):
         pass
-        #os.system(SOUND_CMD_FMT % (self.sound_folder + "OnTarget.wav"))
+        #subprocess.Popen([SOUND_CMD_FMT, (self.sound_folder + "OnTarget.wav")])
     def say_range_sensor(self):
         pass
-        #os.system(SOUND_CMD_FMT % (self.sound_folder + "RangeSensor.wav"))
+        #subprocess.Popen([SOUND_CMD_FMT, (self.sound_folder + "RangeSensor.wav")])
     def say_target_picked(self):
         pass
-        #os.system(SOUND_CMD_FMT % (self.sound_folder + "TargetPicked.wav"))
+        #subprocess.Popen([SOUND_CMD_FMT, (self.sound_folder + "TargetPicked.wav")])
 
 try:
     robot0 = Robot("Firecracker", "/dev/rfcomm0", "Sounds/FireCracker/",

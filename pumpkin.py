@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
 import multiprocessing as mp
+import signal
 import numpy as np
 import cv2
+
+signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
 from camera import macRun, raspberryRun
 from settings import setup_settings_window
@@ -44,17 +47,20 @@ def on_click(event, x, y, flags, param):
             state.state = State.IDLE
 
 def step(frame):
+
+    state.last_frame = frame
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    state.last_hsv = hsv
+        
     state.frame_count += 1
     tim = time.time()
     if tim > state.last_fps + 1:
         state.last_fps = tim
         print state.frame_count
         state.frame_count = 0
+        if state.graph is not None:
+            state.regenerate_graph(hsv)
 
-    state.last_frame = frame
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    state.last_hsv = hsv
-        
     if state.state == 1:
         state.selected_robot.set_front_box_2(p1, hsv)
         state.state = 3
@@ -105,11 +111,17 @@ def draw(frame, hsv):
         cv2.imshow(WINDOW_TITLE, frame)
 
 def setup_window(): 
+    print "dick"
     setup_settings_window()
+    print "dick"
     RobotSettingsWindow(robot0)
+    print "dick"
     RobotSettingsWindow(robot1)
+    print "dick"
     cv2.namedWindow(WINDOW_TITLE)
+    print "dick"
     cv2.setMouseCallback(WINDOW_TITLE, on_click)
+    print "dick"
 
 def main():
     """

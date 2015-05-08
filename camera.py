@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import atexit
 import os
 RASPBERRY_PI = os.uname()[1] == "raspberrypi"
 if RASPBERRY_PI:
@@ -16,6 +17,8 @@ def raspberryRun(step):
     camera = PiCamera()
     camera.resolution = CAP_DIM
     camera.framerate = CAP_FPS
+
+    atexit.register(camera.close)
 
     rawCapture = PiRGBArray(camera, size=CAP_DIM)
 
