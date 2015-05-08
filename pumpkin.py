@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import multiprocessing as mp
 import numpy as np
 import cv2
 
@@ -60,8 +61,12 @@ def keyboard_cmds(frame):
         robot1.set_hists(frame)
 
 def step(frame):
-    #cv2.imshow(WINDOW_TITLE, frame)
-    #return
+    state.frame_count += 1
+    tim = time.time()
+    if tim > state.last_fps + 1:
+        state.last_fps = tim
+        print state.frame_count
+        state.frame_count = 0
 
     state.last_frame = frame
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -111,10 +116,10 @@ def step(frame):
     cv2.imshow(WINDOW_TITLE, frame)
 
 def setup_window(): 
-    setup_settings_window()
-    RobotSettingsWindow(robot0)
-    RobotSettingsWindow(robot1)
-    cv2.namedWindow(WINDOW_TITLE)
+    #setup_settings_window()
+    #RobotSettingsWindow(robot0)
+    #RobotSettingsWindow(robot1)
+    #cv2.namedWindow(WINDOW_TITLE)
     cv2.setMouseCallback(WINDOW_TITLE, on_click)
 
 def main():

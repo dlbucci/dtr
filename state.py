@@ -5,7 +5,7 @@ import math
 import cv2
 
 CAP_DIM = (480, 360)
-CAP_FPS = 32
+CAP_FPS = 30
 
 WINDOW_TITLE = "DTR"
 
@@ -66,6 +66,9 @@ class State(object):
         self.callback = None
         self.last_frame = None
         self.last_hsv = None
+
+        self.last_fps = 0
+        self.frame_count = 0
 
     def set_state(self, state, callback):
         self.state = state

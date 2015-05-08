@@ -3,6 +3,7 @@
 import atexit
 import math
 import multiprocessing as mp
+import os
 import Queue
 import random
 import serial
@@ -26,19 +27,23 @@ LAST_POS_LIMIT = 5
 ERROR = "error"
 ERROR_DONE = "error done"
 
+SOUND_CMD_FMT = "omxplayer %s"
+
 def median(L):
     return (sorted(L))[(len(L)/2)]
 
 class Robot(object):
     """ represents a robot. can be told to move with various methods """
 
-    def __init__(self, name, device, front_hue, back_hue, 
+    def __init__(self, name, device, sound_folder, front_hue, back_hue, 
                  left_motor = 180, right_motor = 190):
         """ device should be the path to the bluetooth device on the PI """
         self.name = name
 
         self.device = device
         self.resync()
+
+        self.sound_folder = sound_folder
 
         self.angle = 0
         self.x = 0
@@ -316,11 +321,15 @@ class Robot(object):
     def activate_sensors(self):
             return self.write("h\n")
 
+    def say_hi(self):
+        os.system(SOUND_CMD_FMT % (self.sound_folder + "Hi.wav"))
+
 try:
-    robot0 = Robot("Firecracker", "/dev/rfcomm0",
+    robot0 = Robot("Firecracker", "/dev/rfcomm0", "Sounds/FireCracker/",
                    HueSettings(R0_FRONT_MIN_HUE, R0_FRONT_MAX_HUE),
                    HueSettings(R0_BACK_MIN_HUE, R0_BACK_MAX_HUE),
                    R0_LEFT_MOTOR, R0_RIGHT_MOTOR)
+    robot0.say_hi()
     bts0 = serial.Serial("/dev/rfcomm0", baudrate=BLUETOOTH_BAUDRATE)
     print "Connected to Robot 0...",
     try:
@@ -328,11 +337,12 @@ try:
         print "She's ready to go!"
     except:
         print "She ain't listenin'"
-except:
+except Exception as e:
     print "Could Not Connect to Robot 0"
+    print e
 
 try:
-    robot1 = Robot("Little Idiot", "/dev/rfcomm1",
+    robot1 = Robot("Little Idiot", "/dev/rfcomm1", "Sounds/LittleIdiot/",
                    HueSettings(R1_FRONT_MIN_HUE, R1_FRONT_MAX_HUE),
                    HueSettings(R1_BACK_MIN_HUE, R1_BACK_MAX_HUE),
                    R1_LEFT_MOTOR, R1_RIGHT_MOTOR)
@@ -343,8 +353,9 @@ try:
         print "She's ready to go!"
     except:
         print "She ain't listenin'"
-except:
+except Exception as e:
     print "Could Not Connect to Robot 1"
+    print e
 
 if __name__ == "__main__":
     print "Reading From Robot 1"
