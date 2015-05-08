@@ -63,6 +63,8 @@ class Robot(object):
         self.running = False
         self.tracking = False
 
+        self.target = Point()
+
         self.set_motors(left_motor, right_motor)
 
         self.messaging_queue = mp.Queue()
@@ -96,7 +98,7 @@ class Robot(object):
             return
 
         if (time >= self.next_move_time):
-            self.next_move_time = time + self.make_move(state.target)
+            self.next_move_time = time + self.make_move(self.target)
 
     def track(self, hsv, box, hist):
         back_proj = cv2.calcBackProject([hsv], [0], hist, [0, 180], 1)
@@ -117,6 +119,8 @@ class Robot(object):
         if self.back_box is not None:
             cv2.rectangle(frame, (self.back_box[0], self.back_box[1]),
                                  (self.back_box[0] + self.back_box[2], self.back_box[1] + self.back_box[3]), (0, 255, 0), 2) 
+        cv2.circle(frame, (self.target.x, self.target.y), state.target_radius,
+                   TARGET_CIRCLE_COLOR, TARGET_CIRCLE_THICKNESS)
 
     def resync(self):
         try:
@@ -138,7 +142,6 @@ class Robot(object):
 
     def set_front_box(self, p1, p2, hsv):
         self.front_box = self._box_from(p1, p2)
-        print self.front_box
         self.front_hist = self._hist_for(self.front_box, hsv,
                                      self.front_hue.min_hue,
                                      self.front_hue.max_hue)
@@ -151,7 +154,6 @@ class Robot(object):
 
     def set_back_box(self, p1, p2, hsv):
         self.back_box = self._box_from(p1, p2)
-        print self.back_box
         self.back_hist = self._hist_for(self.back_box, hsv,
                                     self.back_hue.min_hue,
                                     self.back_hue.max_hue)
@@ -236,10 +238,10 @@ class Robot(object):
         try:
             while True:
                 msg = self.messaging_queue.get(block=False)
-                print msg
                 if msg[0] == "E":
                     print msg,
                     if msg[1] == ":":
+                        self.note_obstacle(msg[2:])
                         self.error_state = 1
                     elif msg[1] == "D":
                         self.error_state = 3
@@ -263,6 +265,16 @@ class Robot(object):
             return 1
         else:
             return 1
+
+    def note_obstacle(self, msg):
+        if msg == "FIR\n":
+            state.obstacles.append(Obstacle(self.front_box[0], self.front_box[1], OBSTACLE_WALL, self))
+        elif msg == "CL\n":
+            state.obstacles.append(Obstacle(self.front_box[0], self.front_box[1], OBSTACLE_CLIFF, self))
+        elif msg == "CR\n":
+            state.obstacles.append(Obstacle(self.front_box[0], self.front_box[1], OBSTACLE_CLIFF, self))
+        elif msg == "B\n":
+            state.obstacles.append(Obstacle(self.front_box[0], self.front_box[1], OBSTACLE_WALL, self))
 
     #
     # private - meant for testing below here

@@ -71,6 +71,8 @@ class State(object):
         self.frame_count = 0
 
         self.floor_hue = HueSettings()
+        
+        self.obstacles = []
 
     def set_state(self, state, callback):
         self.state = state
@@ -84,6 +86,25 @@ class HueSettings(object):
     def __init__(self, min_hue=0, max_hue=180):
         self.min_hue = min_hue
         self.max_hue = max_hue
+
+OBSTACLE_CLIFF = 0
+OBSTACLE_WALL = 1
+OBSTACLE_RADIUS = 5
+OBSTACLE_COLOR = (0, 0, 255)
+OBSTACLE_THICKNESS = 5
+class Obstacle(object):
+    def __init__(self, x, y, kind, robot):
+        if kind == OBSTACLE_CLIFF:
+            self.arg1 = (x, y)
+            self.arg2 = OBSTACLE_RADIUS
+        elif kind == OBSTACLE_WALL:
+            self.arg1 = (x-OBSTACLE_RADIUS, y-OBSTACLE_RADIUS)
+            self.arg2 = (x+OBSTACLE_RADIUS, y+OBSTACLE_RADIUS)
+        self.kind = kind
+        self.robot = robot
+
+    def draw(self, frame):
+        cv2.circles(frame, self.arg1, self.arg2, OBSTACLE_COLOR, OBSTACLE_THICKNESS)
 
 p1 = Point()
 p2 = Point()
