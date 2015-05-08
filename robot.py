@@ -21,6 +21,7 @@ BACKWARD = "b"
 LEFT = "l"
 RIGHT = "r"
 STOP = "s\n"
+ERROR_CMD = "e\n"
 
 LAST_POS_LIMIT = 5
 
@@ -88,6 +89,11 @@ class Robot(object):
                                 np.array((self.back_hue.max_hue, 255, 255)))
         hsv1 = cv2.bitwise_and(hsv, hsv, mask=mask)
         self.back_box = self.track(hsv1, self.back_box, self.back_hist)
+
+        if (self.front_box[0] <= 0 or self.front_box[1] <= 0 or
+            self.front_box[0] + self.front_box[2] >= 479 or
+            self.front_box[1] + self.front_box[3] >= 359):
+            self.error_cmd()
         
         if not self.running:
             return
@@ -317,6 +323,9 @@ class Robot(object):
 
     def stop(self):
         return self.write(STOP)
+    
+    def error_cmd(self):
+        return self.write(ERROR_CMD)
 
     def auto(self):
         return self.write("a\n")
