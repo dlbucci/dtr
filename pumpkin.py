@@ -99,6 +99,10 @@ def draw(frame, hsv):
                                 np.array((robot1.back_hue.max_hue, 255., 255.)))
         hsv = cv2.bitwise_and(hsv, hsv, mask=mask)
         cv2.imshow(WINDOW_TITLE, cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR))
+    elif state.view == 6:
+        if state.graph is not None:
+            state.graph.draw(frame)
+        cv2.imshow(WINDOW_TITLE, frame)
 
 def setup_window(): 
     setup_settings_window()

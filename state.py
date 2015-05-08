@@ -72,6 +72,7 @@ class State(object):
 
         self.floor_hue = HueSettings()
         
+        self.graph = None
         self.obstacles = []
 
     def set_state(self, state, callback):
